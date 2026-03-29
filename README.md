@@ -13,6 +13,17 @@ Integrates with Sonarr and Radarr for original language detection and automatic 
 
 > 🐉 Here be dragons. This project is still young, things may break.
 
+## Features
+
+- Strip redundant audio tracks (commentary, foreign dubs) and subtitles (SDH, foreign)
+- Clean up track names by removing scene group tags and codec dumps
+- Detect original language from Sonarr/Radarr metadata
+- Per-directory profiles for language filtering and track handling
+- Webhook support to automatically process new Sonarr/Radarr imports
+- Pause, resume, and cancel running conversions
+- Fixes metadata in-place when no tracks need removing
+- Library overview with codec, resolution and language breakdowns
+
 ## Screenshots
 
 <p align="center">
@@ -36,17 +47,6 @@ Integrates with Sonarr and Radarr for original language detection and automatic 
   <img src="docs/screenshots/settings.png" alt="Profile Settings" width="800"/><br/>
   <em>Profile settings</em>
 </p>
-
-## Features
-
-- Strip redundant audio tracks (commentary, foreign dubs) and subtitles (SDH, foreign)
-- Clean up track names by removing scene group tags and codec dumps
-- Detect original language from Sonarr/Radarr metadata
-- Per-directory profiles for language filtering and track handling
-- Webhook support to automatically process new Sonarr/Radarr imports
-- Pause, resume, and cancel running conversions
-- Fixes metadata in-place when no tracks need removing
-- Library overview with codec, resolution and language breakdowns
 
 ## Installation
 
