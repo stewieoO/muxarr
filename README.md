@@ -63,6 +63,8 @@ services:
       - PGID=1000
     volumes:
       - /path/to/data:/data
+      # Media paths need to match your Sonarr/Radarr container paths
+      # so Muxarr can find files by the same paths that Sonarr/Radarr report.
       - /path/to/media:/media
     ports:
       - 8183:8183
