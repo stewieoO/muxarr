@@ -1,13 +1,13 @@
-﻿<tr>
+<tr>
     <td>
         @Track.TrackNumber
     </td>
     <td>
-        <MediaTrackLabel Track="Track"></MediaTrackLabel>
+        <MediaTrackLabel Track="Track" ResolvedLanguage="@ResolvedLanguage"></MediaTrackLabel>
 
-        @if (Track.LanguageName == OriginalLanguage)
+        @if (DisplayLanguage == OriginalLanguage)
         {
-            <ToolTip Tip="Original Language">
+            <ToolTip Tip="@(ResolvedLanguage != null ? $"Undetermined → {ResolvedLanguage} (original language)" : "Original Language")">
                 <i class="bi bi-star-fill text-warning ms-2"></i>
             </ToolTip>
         }
@@ -30,9 +30,9 @@
         {
             <span class="text-muted small me-2 @(HasMetadataChange ? "text-decoration-line-through" : "")">@Track.TrackName</span>
         }
-        @if (HasMetadataChange && !string.IsNullOrEmpty(ExpectedTrackName))
+        @if (HasMetadataChange && !string.IsNullOrEmpty(Preview?.TrackName))
         {
-            <span class="small text-info">@ExpectedTrackName</span>
+            <span class="small text-info">@Preview.TrackName</span>
         }
     </td>
 </tr>
@@ -44,13 +44,34 @@
 
     [Parameter, EditorRequired] public string? OriginalLanguage { get; set; }
 
-    [Parameter] public string? ExpectedTrackName { get; set; }
+    [Parameter] public TrackSnapshot? Preview { get; set; }
+
+    private string? ResolvedLanguage =>
+        Preview != null && Preview.LanguageName != Track.LanguageName ? Preview.LanguageName : null;
+
+    private string DisplayLanguage => ResolvedLanguage ?? Track.LanguageName;
 
     private bool HasMetadataChange =>
-        IsAllowed && ExpectedTrackName != null &&
-        !string.Equals(Track.TrackName ?? "", ExpectedTrackName, StringComparison.Ordinal);
+        Preview != null && (
+            Preview.LanguageName != Track.LanguageName
+            || !string.Equals(Track.TrackName ?? "", Preview.TrackName ?? "", StringComparison.Ordinal));
 
-    private string MetadataChangeTip => string.IsNullOrEmpty(ExpectedTrackName)
-        ? "Track name will be cleared"
-        : $"Track name will be renamed to: {ExpectedTrackName}";
+    private string MetadataChangeTip
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (Preview != null && Preview.LanguageName != Track.LanguageName)
+            {
+                parts.Add($"Language: {Track.LanguageName} → {Preview.LanguageName}");
+            }
+            if (Preview != null && !string.Equals(Track.TrackName ?? "", Preview.TrackName ?? "", StringComparison.Ordinal))
+            {
+                parts.Add(string.IsNullOrEmpty(Preview.TrackName)
+                    ? "Track name will be cleared"
+                    : $"Track name → {Preview.TrackName}");
+            }
+            return string.Join("\n", parts);
+        }
+    }
 }

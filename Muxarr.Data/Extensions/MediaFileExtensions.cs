@@ -280,6 +280,61 @@ public static class MediaFileExtensions
         return false;
     }
 
+    /// <summary>
+    /// Creates snapshot copies of allowed tracks with all planned mutations applied
+    /// (undetermined resolution, track name standardization, flag correction).
+    /// Used by the UI to preview the future state of tracks after conversion.
+    /// </summary>
+    public static List<TrackSnapshot> GetPreviewTracks(this MediaFile file, Profile? profile)
+    {
+        if (profile == null)
+        {
+            return file.Tracks.Select(t => t.ToSnapshot()).ToList();
+        }
+
+        var allowedTracks = file.GetAllowedTracks(profile);
+        var previews = new List<TrackSnapshot>();
+
+        foreach (var track in allowedTracks)
+        {
+            var preview = track.ToSnapshot();
+
+            if (preview.Type == MediaTrackType.Video)
+            {
+                if (profile.ClearVideoTrackNames)
+                {
+                    preview.TrackName = null;
+                }
+
+                previews.Add(preview);
+                continue;
+            }
+
+            preview.CorrectFlagsFromTrackName();
+
+            var settings = preview.Type == MediaTrackType.Audio
+                ? profile.AudioSettings
+                : profile.SubtitleSettings;
+
+            var totalTracksOfType = file.Tracks.Count(t => t.Type == preview.Type);
+            if (preview.ShouldResolveUndetermined(settings, totalTracksOfType, file.OriginalLanguage))
+            {
+                var iso = IsoLanguage.Find(file.OriginalLanguage!);
+                preview.LanguageName = file.OriginalLanguage!;
+                preview.LanguageCode = iso.ThreeLetterCode!;
+            }
+
+            if (settings.StandardizeTrackNames)
+            {
+                preview.TrackName = preview.ApplyTrackNameTemplate(settings.TrackNameTemplate);
+            }
+
+            previews.Add(preview);
+        }
+
+        return previews;
+    }
+
     // Mutation methods — TrackSnapshot only (used at conversion time on snapshot copies)
 
     public static void CorrectFlagsFromTrackName(this TrackSnapshot track)

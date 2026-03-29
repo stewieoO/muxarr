@@ -109,9 +109,8 @@
                     @if (File.Tracks.Any())
                     {
                         <MediaTrackDetailTable Tracks="File.Tracks"
-                                               AllowedTracks="AllowedTracks"
-                                               OriginalLanguage="@File.OriginalLanguage"
-                                               Profile="File.Profile"/>
+                                               PreviewTracks="PreviewTracks"
+                                               OriginalLanguage="@File.OriginalLanguage"/>
                     }
                     else
                     {
@@ -165,6 +164,7 @@
 
     protected MediaFile? File { get; set; }
     protected List<MediaTrack> AllowedTracks { get; set; } = new();
+    protected List<TrackSnapshot>? PreviewTracks { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -189,6 +189,7 @@
         // Needed to fix order.
         File.Conversions = File.Conversions.OrderByDescending(x => x.CreatedDate).ToList();
         AllowedTracks = File.GetAllowedTracks(File.Profile);
+        PreviewTracks = File.GetPreviewTracks(File.Profile);
     }
     
     private void OnConverterStateChanged(object? sender, ConverterProgressEvent e)
