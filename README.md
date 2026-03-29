@@ -9,7 +9,7 @@
 
 Muxarr cleans up your media files by removing redundant audio and subtitle tracks and standardizing track metadata. It uses **mkvmerge** to remux files, so it only strips away what you don't need. Video, audio quality, and all remaining streams stay completely intact without quality loss since there is no re-encoding.
 
-Integrates with Sonarr and Radarr for original language detection and automatic processing via webhooks.
+Integrates with your existing services for original language detection and automatic processing via webhooks.
 
 > 🐉 Here be dragons. This project is still young, things may break.
 
@@ -17,9 +17,9 @@ Integrates with Sonarr and Radarr for original language detection and automatic 
 
 - Strip redundant audio tracks (commentary, foreign dubs) and subtitles (SDH, foreign)
 - Clean up track names by removing encoder tags and codec dumps
-- Detect original language from Sonarr/Radarr metadata
+- Detect original language via external service integration
 - Per-directory profiles for language filtering and track handling
-- Webhook support to automatically process new Sonarr/Radarr imports
+- Webhook support to automatically process new imports
 - Pause, resume, and cancel running conversions
 - Fixes metadata in-place when no tracks need removing
 - Library overview with codec, resolution and language breakdowns
@@ -66,8 +66,8 @@ services:
       - PGID=1000
     volumes:
       - /path/to/data:/data
-      # Media paths need to match your Sonarr/Radarr container paths
-      # so Muxarr can find files by the same paths that Sonarr/Radarr report.
+      # Media paths should match those used by your existing services
+      # so Muxarr can find files by the same paths they report.
       - /path/to/media:/media
     ports:
       - 8183:8183
@@ -111,7 +111,7 @@ docker run -d \
 
 1. Open `http://your-ip:8183`
 2. Create a profile with your media directories and language rules
-3. Optionally connect Sonarr/Radarr for original language detection
+3. Optionally connect your existing services for original language detection
 4. Scan and queue files for conversion
 
 Make sure you properly setup a profile and convert your first files manually, remuxing can be quite fast on the right hardware. You don't want to clean too much. ;)
