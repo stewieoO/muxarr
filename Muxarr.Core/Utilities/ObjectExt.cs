@@ -11,7 +11,7 @@ public static class ObjectExt
 
         // Serialize to JSON and back for deep clone
         var serialized = JsonHelper.Serialize(source);
-        return JsonHelper.Deserialize<T>(serialized);
+        return JsonHelper.Deserialize<T>(serialized)!;
     }
 
     public static bool LazyEquals<T>(this T source, T target)
