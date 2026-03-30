@@ -1,11 +1,9 @@
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Muxarr.Core.Utilities;
 
 namespace Muxarr.Tests;
 
 [TestClass]
-public class HardLinkDetectorTests
+public class HardLinkHelperTests
 {
     private string _tempDir = null!;
 
@@ -25,16 +23,24 @@ public class HardLinkDetectorTests
         }
     }
 
-    private static void CreateHardLink(string source, string link)
+    [TestMethod]
+    public void TryCreateHardLink_CreatesLink()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            Process.Start("cmd", $"/c mklink /H \"{link}\" \"{source}\"")!.WaitForExit();
-        }
-        else
-        {
-            Process.Start("ln", new[] { source, link })!.WaitForExit();
-        }
+        var source = Path.Combine(_tempDir, "source.txt");
+        var link = Path.Combine(_tempDir, "link.txt");
+        File.WriteAllText(source, "test");
+
+        Assert.IsTrue(HardLinkHelper.TryCreateHardLink(source, link));
+        Assert.IsTrue(File.Exists(link));
+        Assert.AreEqual("test", File.ReadAllText(link));
+    }
+
+    [TestMethod]
+    public void TryCreateHardLink_NonExistentSource_ReturnsFalse()
+    {
+        var link = Path.Combine(_tempDir, "link.txt");
+
+        Assert.IsFalse(HardLinkHelper.TryCreateHardLink(Path.Combine(_tempDir, "nope.txt"), link));
     }
 
     [TestMethod]
@@ -43,7 +49,7 @@ public class HardLinkDetectorTests
         var file = Path.Combine(_tempDir, "regular.txt");
         File.WriteAllText(file, "test");
 
-        Assert.IsFalse(HardLinkDetector.IsHardlinked(file));
+        Assert.IsFalse(HardLinkHelper.IsHardlinked(file));
     }
 
     [TestMethod]
@@ -52,10 +58,10 @@ public class HardLinkDetectorTests
         var original = Path.Combine(_tempDir, "original.txt");
         var link = Path.Combine(_tempDir, "link.txt");
         File.WriteAllText(original, "test");
-        CreateHardLink(original, link);
+        HardLinkHelper.TryCreateHardLink(original, link);
 
-        Assert.IsTrue(HardLinkDetector.IsHardlinked(original));
-        Assert.IsTrue(HardLinkDetector.IsHardlinked(link));
+        Assert.IsTrue(HardLinkHelper.IsHardlinked(original));
+        Assert.IsTrue(HardLinkHelper.IsHardlinked(link));
     }
 
     [TestMethod]
@@ -64,19 +70,19 @@ public class HardLinkDetectorTests
         var original = Path.Combine(_tempDir, "original.txt");
         var link = Path.Combine(_tempDir, "link.txt");
         File.WriteAllText(original, "test");
-        CreateHardLink(original, link);
+        HardLinkHelper.TryCreateHardLink(original, link);
 
-        Assert.IsTrue(HardLinkDetector.IsHardlinked(original));
+        Assert.IsTrue(HardLinkHelper.IsHardlinked(original));
 
         File.Delete(link);
 
-        Assert.IsFalse(HardLinkDetector.IsHardlinked(original));
+        Assert.IsFalse(HardLinkHelper.IsHardlinked(original));
     }
 
     [TestMethod]
     public void IsHardlinked_NonExistentFile_ReturnsFalse()
     {
-        Assert.IsFalse(HardLinkDetector.IsHardlinked(Path.Combine(_tempDir, "nope.txt")));
+        Assert.IsFalse(HardLinkHelper.IsHardlinked(Path.Combine(_tempDir, "nope.txt")));
     }
 
     [TestMethod]
@@ -85,7 +91,7 @@ public class HardLinkDetectorTests
         var file = Path.Combine(_tempDir, "regular.txt");
         File.WriteAllText(file, "test");
 
-        Assert.AreEqual(1u, HardLinkDetector.GetLinkCount(file));
+        Assert.AreEqual(1u, HardLinkHelper.GetLinkCount(file));
     }
 
     [TestMethod]
@@ -94,10 +100,10 @@ public class HardLinkDetectorTests
         var original = Path.Combine(_tempDir, "original.txt");
         var link = Path.Combine(_tempDir, "link.txt");
         File.WriteAllText(original, "test");
-        CreateHardLink(original, link);
+        HardLinkHelper.TryCreateHardLink(original, link);
 
-        Assert.AreEqual(2u, HardLinkDetector.GetLinkCount(original));
-        Assert.AreEqual(2u, HardLinkDetector.GetLinkCount(link));
+        Assert.AreEqual(2u, HardLinkHelper.GetLinkCount(original));
+        Assert.AreEqual(2u, HardLinkHelper.GetLinkCount(link));
     }
 
     [TestMethod]
@@ -107,9 +113,9 @@ public class HardLinkDetectorTests
         var link1 = Path.Combine(_tempDir, "link1.txt");
         var link2 = Path.Combine(_tempDir, "link2.txt");
         File.WriteAllText(original, "test");
-        CreateHardLink(original, link1);
-        CreateHardLink(original, link2);
+        HardLinkHelper.TryCreateHardLink(original, link1);
+        HardLinkHelper.TryCreateHardLink(original, link2);
 
-        Assert.AreEqual(3u, HardLinkDetector.GetLinkCount(original));
+        Assert.AreEqual(3u, HardLinkHelper.GetLinkCount(original));
     }
 }

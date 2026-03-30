@@ -21,18 +21,18 @@ public class MediaScannerService(
     private CancellationTokenSource? _scanCts;
     public event EventHandler<bool>? ScanningStateChanged;
     private DateTime _lastScanUpdate = DateTime.MinValue;
-    private bool _isScanning;
+
     public bool IsScanning
     {
-        get => _isScanning;
+        get;
         private set
         {
-            if (_isScanning == value)
+            if (field == value)
             {
                 return;
             }
 
-            _isScanning = value;
+            field = value;
             ScanningStateChanged?.Invoke(this, value);
         }
     }
@@ -148,9 +148,16 @@ public class MediaScannerService(
     private async Task ScanFileCore(string filePath, bool forceRescan, Profile profile,
         AppDbContext context, string? webhookTitle = null, string? webhookOriginalLanguage = null)
     {
-        if (profile.SkipHardlinkedFiles && HardLinkDetector.IsHardlinked(filePath))
+        if (profile.SkipHardlinkedFiles && HardLinkHelper.IsHardlinked(filePath))
         {
-            logger.LogDebug("Skipping hardlinked file: {Path}", filePath);
+            var stale = await context.MediaFiles.FirstOrDefaultAsync(x => x.Path == filePath);
+            if (stale != null)
+            {
+                context.MediaFiles.Remove(stale);
+                await context.SaveChangesAsync();
+                logger.LogInformation("Removed previously scanned hardlinked file: {Path}", filePath);
+            }
+
             return;
         }
 

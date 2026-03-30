@@ -156,7 +156,7 @@ public class MediaConverterService(
             return false;
         }
 
-        if (profile.SkipHardlinkedFiles && HardLinkDetector.IsHardlinked(media.Path))
+        if (profile.SkipHardlinkedFiles && HardLinkHelper.IsHardlinked(media.Path))
         {
             logger.LogInformation("Skipping hardlinked file: {Path}", media.Path);
             return false;
@@ -190,7 +190,7 @@ public class MediaConverterService(
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var profile = media.Profile ?? context.Profiles.ToList().GetBestCandidate(media.Path);
-        if (profile is { SkipHardlinkedFiles: true } && HardLinkDetector.IsHardlinked(media.Path))
+        if (profile is { SkipHardlinkedFiles: true } && HardLinkHelper.IsHardlinked(media.Path))
         {
             logger.LogInformation("Skipping hardlinked file: {Path}", media.Path);
             return false;
