@@ -56,56 +56,14 @@
 
     <div class="row g-4 mb-4">
         <div class="col-md-6">
-            <div class="border rounded p-4">
-                <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-film text-primary me-2"></i>
-                    <h5 class="mb-0">Radarr</h5>
-                    @if (_radarrStatus != null)
-                    {
-                        <span class="badge ms-2 @(_radarrStatus == ConnectStatus.Connected ? "text-bg-success" : _radarrStatus == ConnectStatus.NotConfigured ? "text-bg-secondary" : "text-bg-danger")">
-                            @FormatStatus(_radarrStatus.Value)
-                        </span>
-                    }
-                </div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => ConnectWebhook(true)" disabled="@_isConnecting">
-                        @if (_isConnecting)
-                        {
-                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                        }
-                        <i class="bi bi-plug me-1"></i>Connect
-                    </button>
-                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => DisconnectWebhook(true)" disabled="@_isConnecting">
-                        <i class="bi bi-x-circle me-1"></i>Disconnect
-                    </button>
-                </div>
-            </div>
+            <WebhookConnector Name="Radarr" ConfigKey="@ArrConfig.RadarrKey"
+                              GetWebhookUrl="@(() => WebhookUrl)"
+                              Status="_radarrStatus" StatusChanged="s => _radarrStatus = s" />
         </div>
         <div class="col-md-6">
-            <div class="border rounded p-4">
-                <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-tv text-primary me-2"></i>
-                    <h5 class="mb-0">Sonarr</h5>
-                    @if (_sonarrStatus != null)
-                    {
-                        <span class="badge ms-2 @(_sonarrStatus == ConnectStatus.Connected ? "text-bg-success" : _sonarrStatus == ConnectStatus.NotConfigured ? "text-bg-secondary" : "text-bg-danger")">
-                            @FormatStatus(_sonarrStatus.Value)
-                        </span>
-                    }
-                </div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => ConnectWebhook(false)" disabled="@_isConnecting">
-                        @if (_isConnecting)
-                        {
-                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                        }
-                        <i class="bi bi-plug me-1"></i>Connect
-                    </button>
-                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => DisconnectWebhook(false)" disabled="@_isConnecting">
-                        <i class="bi bi-x-circle me-1"></i>Disconnect
-                    </button>
-                </div>
-            </div>
+            <WebhookConnector Name="Sonarr" ConfigKey="@ArrConfig.SonarrKey"
+                              GetWebhookUrl="@(() => WebhookUrl)"
+                              Status="_sonarrStatus" StatusChanged="s => _sonarrStatus = s" />
         </div>
     </div>
 
@@ -140,10 +98,9 @@
     [CascadingParameter] public TabSet? TabSet { get; set; }
 
     private WebhookConfig Config { get; set; } = new();
-    private bool _isConnecting;
     private bool _hasAnyArrConfigured;
-    private ConnectStatus? _radarrStatus;
-    private ConnectStatus? _sonarrStatus;
+    private WebhookConnector.ConnectStatus? _radarrStatus;
+    private WebhookConnector.ConnectStatus? _sonarrStatus;
 
     private string WebhookUrl
     {
@@ -169,12 +126,6 @@
         await using var context = await ContextFactory.CreateDbContextAsync();
         Config = context.Configs.GetOrDefault<WebhookConfig>();
 
-        await CheckStatuses();
-    }
-
-    private async Task CheckStatuses()
-    {
-        await using var context = await ContextFactory.CreateDbContextAsync();
         var radarrConfig = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.RadarrKey);
         var sonarrConfig = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.SonarrKey);
 
@@ -182,8 +133,8 @@
             (!string.IsNullOrWhiteSpace(radarrConfig.Url) && !string.IsNullOrWhiteSpace(radarrConfig.ApiKey)) ||
             (!string.IsNullOrWhiteSpace(sonarrConfig.Url) && !string.IsNullOrWhiteSpace(sonarrConfig.ApiKey));
 
-        _radarrStatus = await GetStatus(radarrConfig);
-        _sonarrStatus = await GetStatus(sonarrConfig);
+        _radarrStatus = await WebhookConnector.GetStatus(ArrApi, radarrConfig);
+        _sonarrStatus = await WebhookConnector.GetStatus(ArrApi, sonarrConfig);
     }
 
     private void ActivateArrTab()
@@ -191,125 +142,10 @@
         TabSet?.ActivateTab("*arrsettings");
     }
 
-    private async Task<ConnectStatus> GetStatus(ArrConfig arrConfig)
-    {
-        if (string.IsNullOrWhiteSpace(arrConfig.Url) || string.IsNullOrWhiteSpace(arrConfig.ApiKey))
-        {
-            return ConnectStatus.NotConfigured;
-        }
-
-        var existing = await ArrApi.FindMuxarrNotification(arrConfig);
-        return existing != null ? ConnectStatus.Connected : ConnectStatus.Disconnected;
-    }
-
-    private async Task ConnectWebhook(bool isRadarr)
-    {
-        await CheckStatuses();
-
-        if (string.IsNullOrWhiteSpace(Config.MuxarrUrl))
-        {
-            ToastService.ShowWarning("Please set the Muxarr URL first and save settings.");
-            return;
-        }
-
-        _isConnecting = true;
-        StateHasChanged();
-
-        try
-        {
-            await using var context = await ContextFactory.CreateDbContextAsync();
-            var key = isRadarr ? ArrConfig.RadarrKey : ArrConfig.SonarrKey;
-            var arrConfig = context.Configs.GetOrDefault<ArrConfig>(key);
-            var name = isRadarr ? "Radarr" : "Sonarr";
-
-            if (string.IsNullOrWhiteSpace(arrConfig.Url) || string.IsNullOrWhiteSpace(arrConfig.ApiKey))
-            {
-                ToastService.ShowWarning($"{name} is not configured. Set it up in *Arr Settings first.");
-                return;
-            }
-
-            var webhookUrl = WebhookUrl;
-            var existing = await ArrApi.FindMuxarrNotification(arrConfig);
-
-            bool success;
-            if (existing != null)
-            {
-                success = await ArrApi.UpdateWebhookNotification(arrConfig, existing, webhookUrl);
-            }
-            else
-            {
-                success = await ArrApi.CreateWebhookNotification(arrConfig, webhookUrl);
-            }
-
-            if (success)
-            {
-                ToastService.ShowSuccess($"Webhook {(existing != null ? "updated" : "created")} in {name}!");
-                if (isRadarr) _radarrStatus = ConnectStatus.Connected;
-                else _sonarrStatus = ConnectStatus.Connected;
-            }
-            else
-            {
-                ToastService.ShowError($"Failed to set up webhook in {name}.");
-            }
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowError($"Error: {ex.Message}");
-        }
-        finally
-        {
-            _isConnecting = false;
-        }
-    }
-
-    private async Task DisconnectWebhook(bool isRadarr)
-    {
-        await CheckStatuses();
-
-        _isConnecting = true;
-        StateHasChanged();
-
-        try
-        {
-            await using var context = await ContextFactory.CreateDbContextAsync();
-            var key = isRadarr ? ArrConfig.RadarrKey : ArrConfig.SonarrKey;
-            var arrConfig = context.Configs.GetOrDefault<ArrConfig>(key);
-            var name = isRadarr ? "Radarr" : "Sonarr";
-
-            var existing = await ArrApi.FindMuxarrNotification(arrConfig);
-            if (existing == null)
-            {
-                ToastService.ShowInfo($"No Muxarr webhook found in {name}.");
-                if (isRadarr) _radarrStatus = ConnectStatus.Disconnected;
-                else _sonarrStatus = ConnectStatus.Disconnected;
-                return;
-            }
-
-            var success = await ArrApi.DeleteWebhookNotification(arrConfig, existing.Id);
-            if (success)
-            {
-                ToastService.ShowSuccess($"Webhook removed from {name}.");
-                if (isRadarr) _radarrStatus = ConnectStatus.Disconnected;
-                else _sonarrStatus = ConnectStatus.Disconnected;
-            }
-            else
-            {
-                ToastService.ShowError($"Failed to remove webhook from {name}.");
-            }
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowError($"Error: {ex.Message}");
-        }
-        finally
-        {
-            _isConnecting = false;
-        }
-    }
-
     private async Task GenerateApiKey()
     {
-        var hasConnected = _radarrStatus == ConnectStatus.Connected || _sonarrStatus == ConnectStatus.Connected;
+        var hasConnected = _radarrStatus == WebhookConnector.ConnectStatus.Connected
+                        || _sonarrStatus == WebhookConnector.ConnectStatus.Connected;
         if (hasConnected)
         {
             var confirmed = await ModalService.ShowConfirm(
@@ -342,14 +178,4 @@
             ToastService.ShowError($"Failed to save settings: {ex.Message}");
         }
     }
-
-    private enum ConnectStatus { Connected, Disconnected, NotConfigured }
-
-    private static string FormatStatus(ConnectStatus status) => status switch
-    {
-        ConnectStatus.Connected => "Connected",
-        ConnectStatus.Disconnected => "Disconnected",
-        ConnectStatus.NotConfigured => "Not Configured",
-        _ => status.ToString()
-    };
 }

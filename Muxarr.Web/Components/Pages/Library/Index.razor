@@ -386,14 +386,16 @@
         return query;
     }
 
-    private async Task Refresh()
+    private void Refresh()
     {
-        await MediaScanner.ScanAll(false);
+        ToastService.ShowInfo("Scan started..");
+        _ = MediaScanner.ScanAll(false);
     }
 
-    private async Task ForceRefresh()
+    private void ForceRefresh()
     {
-        await MediaScanner.ScanAll(true);
+        ToastService.ShowInfo("Scan started..");
+        _ = MediaScanner.ScanAll(true);
     }
 
     private void CancelRefresh()

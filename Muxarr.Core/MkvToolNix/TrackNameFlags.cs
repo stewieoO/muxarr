@@ -1,28 +1,30 @@
 namespace Muxarr.Core.MkvToolNix;
 
 /// <summary>
-/// Centralized track-name keyword detection for flags like HI, forced, commentary, etc.
-/// Used both when parsing mkvmerge output and when correcting flags at conversion time.
+/// Detects track flags (HI, forced, commentary, etc.) from track names.
+/// Used when parsing mkvmerge output and when correcting flags at conversion time.
 /// </summary>
 public static class TrackNameFlags
 {
-    // Short abbreviations — need word-boundary checks to avoid false positives
-    // (e.g. "CC" inside "Accessibility", "HI" inside "Chinese").
+    // Word-boundary matched to avoid false positives (e.g. "CC" in "Accessibility").
     private static readonly string[] HearingImpairedAbbreviations = ["CC", "HI", "HOH"];
 
-    // Longer keywords — safe as substring matches due to length/specificity.
+    // Substring matched - long enough to be safe.
     private static readonly string[] HearingImpairedKeywords =
     [
         "SDH", "SHD",
         "Closed Caption", "Hearing Impaired", "for Deaf",
-        "doven", "slechthorend",                    // Dutch
-        "Hörgeschädigte", "Gehörlose", "Schwerhörige", // German
-        "sourds", "malentendant",                   // French (matches "malentendants" too)
-        "sordos", "sordi",                          // Spanish, Italian
-        "surdos",                                   // Portuguese
-        "döva", "hörselskad",                       // Swedish (matches "hörselskadade")
-        "døve", "hørselshemm", "hørehæmm",          // Norwegian, Danish
+        "doven", "slechthorend",                        // Dutch
+        "Hörgeschädigte", "Gehörlose", "Schwerhörige",  // German
+        "sourds", "malentendant",                        // French
+        "sordos", "sordi",                               // Spanish, Italian
+        "surdos",                                        // Portuguese
+        "döva", "hörselskad",                            // Swedish
+        "døve", "hørselshemm", "hørehæmm",               // Norwegian, Danish
     ];
+
+    // Word-boundary matched to avoid "Design" matching "Signs".
+    private static readonly string[] ForcedAbbreviations = ["Signs"];
 
     public static bool ContainsHearingImpaired(string? name)
     {
@@ -49,10 +51,6 @@ public static class TrackNameFlags
 
         return false;
     }
-
-    // Short keywords for forced — need word-boundary checks
-    // ("Signs" would match "Design" or "Signals" without boundary check).
-    private static readonly string[] ForcedAbbreviations = ["Signs"];
 
     public static bool ContainsForced(string? name)
     {
@@ -94,10 +92,6 @@ public static class TrackNameFlags
                || name.Contains("Audio Descri", StringComparison.InvariantCultureIgnoreCase);
     }
 
-    /// <summary>
-    /// Checks if <paramref name="text"/> contains <paramref name="word"/> at a word boundary
-    /// (not embedded inside a larger word). Uses char-level checks instead of regex.
-    /// </summary>
     private static bool ContainsWord(string text, string word)
     {
         var index = 0;
