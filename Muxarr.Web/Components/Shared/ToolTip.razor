@@ -22,7 +22,13 @@ else
         var elementTop = e.ClientY - e.OffsetY;
         var y = elementTop - 8;
 
-        TooltipService.Show(Tip!, e.ClientX, y, flipped: y < 4);
+        if (y < 4)
+        {
+            // Flip below: place at cursor Y + some offset to clear the element
+            y = e.ClientY + 12;
+        }
+
+        TooltipService.Show(Tip!, e.ClientX, y, flipped: y > elementTop);
     }
 
     private void Hide()

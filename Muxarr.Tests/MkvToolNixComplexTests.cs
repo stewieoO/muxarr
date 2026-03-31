@@ -534,6 +534,94 @@ public class MkvToolNixComplexTests
         Assert.AreEqual("English", subPreview[1].TrackName, "Forced sub is not HI so no SDH suffix");
     }
 
+    // --- RemuxFile: HI and commentary flags ---
+
+    [TestMethod]
+    public async Task RemuxFile_SetsHearingImpairedFlag()
+    {
+        var output = _workingCopy + ".remux.mkv";
+        try
+        {
+            var tracks = new List<TrackOutput>
+            {
+                new() { TrackNumber = 0, Type = MkvMerge.VideoTrack },
+                new() { TrackNumber = 1, Type = MkvMerge.AudioTrack },
+                new() { TrackNumber = 4, Type = MkvMerge.SubtitlesTrack, IsHearingImpaired = true },
+                new() { TrackNumber = 6, Type = MkvMerge.SubtitlesTrack, IsHearingImpaired = false }
+            };
+
+            var result = await MkvMerge.RemuxFile(_workingCopy, output, tracks);
+            Assert.IsTrue(MkvMerge.IsSuccess(result), $"RemuxFile failed: {result.Error}");
+
+            var info = await MkvMerge.GetFileInfo(output);
+            var subTracks = info.Result!.Tracks.Where(t => t.Type == "subtitles").ToList();
+
+            Assert.IsTrue(subTracks[0].Properties.FlagHearingImpaired,
+                "Regular English sub should now be HI");
+            Assert.IsFalse(subTracks[1].Properties.FlagHearingImpaired,
+                "Previously HI sub should now be non-HI");
+        }
+        finally
+        {
+            if (File.Exists(output))
+            {
+                File.Delete(output);
+            }
+        }
+    }
+
+    [TestMethod]
+    public async Task RemuxFile_SetsCommentaryFlag()
+    {
+        var output = _workingCopy + ".remux.mkv";
+        try
+        {
+            var tracks = new List<TrackOutput>
+            {
+                new() { TrackNumber = 0, Type = MkvMerge.VideoTrack },
+                new() { TrackNumber = 1, Type = MkvMerge.AudioTrack, IsCommentary = true },
+                new() { TrackNumber = 2, Type = MkvMerge.AudioTrack, IsCommentary = false }
+            };
+
+            var result = await MkvMerge.RemuxFile(_workingCopy, output, tracks);
+            Assert.IsTrue(MkvMerge.IsSuccess(result), $"RemuxFile failed: {result.Error}");
+
+            var info = await MkvMerge.GetFileInfo(output);
+            var audioTracks = info.Result!.Tracks.Where(t => t.Type == "audio").ToList();
+
+            Assert.IsTrue(audioTracks[0].Properties.FlagCommentary,
+                "English 5.1 should now be commentary");
+            Assert.IsFalse(audioTracks[1].Properties.FlagCommentary,
+                "Previously commentary track should now be non-commentary");
+        }
+        finally
+        {
+            if (File.Exists(output))
+            {
+                File.Delete(output);
+            }
+        }
+    }
+
+    [TestMethod]
+    public async Task PropEdit_SetsHearingImpairedAndCommentaryFlags()
+    {
+        var tracks = new List<TrackOutput>
+        {
+            new() { TrackNumber = 4, Type = MkvMerge.SubtitlesTrack, IsHearingImpaired = true },
+            new() { TrackNumber = 1, Type = MkvMerge.AudioTrack, IsCommentary = true }
+        };
+
+        var result = await MkvPropEdit.EditTrackProperties(_workingCopy, tracks);
+        Assert.IsTrue(result.Success, $"MkvPropEdit failed: {result.Error}");
+
+        var info = await MkvMerge.GetFileInfo(_workingCopy);
+        Assert.IsTrue(info.Result!.Tracks[4].Properties.FlagHearingImpaired,
+            "English sub should now have HI flag");
+        Assert.IsTrue(info.Result.Tracks[1].Properties.FlagCommentary,
+            "English 5.1 should now have commentary flag");
+    }
+
     // --- RemuxFile: combined flags + metadata ---
 
     [TestMethod]
@@ -585,5 +673,199 @@ public class MkvToolNixComplexTests
                 File.Delete(output);
             }
         }
+    }
+
+    // --- Full pipeline -> mkvmerge -> verify output ---
+
+    [TestMethod]
+    public async Task FullPipeline_ProfileFilterAndRemux_ProducesCorrectFile()
+    {
+        // Parse the complex fixture into a MediaFile, apply a profile, remux, verify output
+        var info = await MkvMerge.GetFileInfo(_workingCopy);
+        var file = new MediaFile { OriginalLanguage = "English" };
+        file.SetFileData(info.Result);
+
+        var profile = new Profile
+        {
+            AudioSettings = new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English")],
+                KeepOriginalLanguage = true,
+                RemoveCommentary = true,
+                StandardizeTrackNames = true,
+                TrackNameTemplate = "{language} {channels}"
+            },
+            SubtitleSettings = new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English")],
+                RemoveImpaired = true,
+                StandardizeTrackNames = true,
+                TrackNameTemplate = "{language} {forced}"
+            }
+        };
+
+        // Run pipeline
+        var allowed = file.GetAllowedTracks(profile);
+        var allowedSnapshots = allowed.ToSnapshots();
+        var trackOutputs = file.BuildTrackOutputs(profile, allowedSnapshots, file.Tracks.ToSnapshots(), false);
+
+        // Remux with the pipeline output
+        var output = _workingCopy + ".pipeline.mkv";
+        try
+        {
+            var result = await MkvMerge.RemuxFile(_workingCopy, output, trackOutputs);
+            Assert.IsTrue(MkvMerge.IsSuccess(result), $"RemuxFile failed: {result.Error}");
+
+            // Verify the output file
+            var outInfo = await MkvMerge.GetFileInfo(output);
+            var outTracks = outInfo.Result!.Tracks;
+
+            // Should have: video + 1 audio (English, commentary removed, French removed) + 2 subs (regular + forced, SDH removed)
+            Assert.AreEqual(1, outTracks.Count(t => t.Type == "video"));
+
+            var audioOut = outTracks.Where(t => t.Type == "audio").ToList();
+            Assert.AreEqual(1, audioOut.Count, "Only non-commentary English audio should remain");
+            Assert.AreEqual("English 2.0", audioOut[0].Properties.TrackName, "Audio should be renamed by template");
+            Assert.AreEqual("eng", audioOut[0].Properties.Language);
+
+            var subsOut = outTracks.Where(t => t.Type == "subtitles").ToList();
+            Assert.AreEqual(2, subsOut.Count, "Regular + forced English subs, SDH/French/Spanish removed");
+            Assert.AreEqual("English", subsOut[0].Properties.TrackName, "Regular sub: no forced flag in name");
+            Assert.AreEqual("English Forced", subsOut[1].Properties.TrackName, "Forced sub: forced flag in name");
+        }
+        finally
+        {
+            if (File.Exists(output))
+            {
+                File.Delete(output);
+            }
+        }
+    }
+
+    [TestMethod]
+    public async Task FullPipeline_CustomConversion_FlagsReachOutputFile()
+    {
+        var info = await MkvMerge.GetFileInfo(_workingCopy);
+        var file = new MediaFile { OriginalLanguage = "English" };
+        file.SetFileData(info.Result);
+
+        // Custom conversion: user keeps 2 audio tracks, toggles flags
+        var customAllowed = new List<TrackSnapshot>
+        {
+            new() { Type = MediaTrackType.Video, TrackNumber = 0 },
+            new()
+            {
+                Type = MediaTrackType.Audio, TrackNumber = 1, LanguageName = "English",
+                LanguageCode = "eng", Codec = "AAC", AudioChannels = 2,
+                IsDefault = true, IsCommentary = false, TrackName = "Main"
+            },
+            new()
+            {
+                Type = MediaTrackType.Audio, TrackNumber = 2, LanguageName = "English",
+                LanguageCode = "eng", Codec = "AAC", AudioChannels = 2,
+                IsDefault = false, IsCommentary = true, TrackName = "Director Commentary"
+            },
+            new()
+            {
+                Type = MediaTrackType.Subtitles, TrackNumber = 4, LanguageName = "English",
+                LanguageCode = "eng", Codec = "SRT",
+                IsHearingImpaired = true, IsForced = false, TrackName = "English SDH"
+            }
+        };
+
+        var trackOutputs = file.BuildTrackOutputs(null, customAllowed, file.Tracks.ToSnapshots(), true);
+
+        var output = _workingCopy + ".custom.mkv";
+        try
+        {
+            var result = await MkvMerge.RemuxFile(_workingCopy, output, trackOutputs);
+            Assert.IsTrue(MkvMerge.IsSuccess(result), $"RemuxFile failed: {result.Error}");
+
+            var outInfo = await MkvMerge.GetFileInfo(output);
+            var outTracks = outInfo.Result!.Tracks;
+
+            var audio1 = outTracks.First(t => t.Type == "audio");
+            var audio2 = outTracks.Where(t => t.Type == "audio").Skip(1).First();
+            var sub = outTracks.First(t => t.Type == "subtitles");
+
+            Assert.AreEqual("Main", audio1.Properties.TrackName);
+            Assert.IsTrue(audio1.Properties.DefaultTrack, "First audio should be default");
+            Assert.IsFalse(audio1.Properties.FlagCommentary, "First audio should not be commentary");
+
+            Assert.AreEqual("Director Commentary", audio2.Properties.TrackName);
+            Assert.IsFalse(audio2.Properties.DefaultTrack, "Second audio should not be default");
+            Assert.IsTrue(audio2.Properties.FlagCommentary, "Second audio should be commentary");
+
+            Assert.AreEqual("English SDH", sub.Properties.TrackName);
+            Assert.IsTrue(sub.Properties.FlagHearingImpaired, "Sub should have HI flag");
+            Assert.IsFalse(sub.Properties.ForcedTrack, "Sub should not be forced");
+        }
+        finally
+        {
+            if (File.Exists(output))
+            {
+                File.Delete(output);
+            }
+        }
+    }
+
+    [TestMethod]
+    public async Task FullPipeline_MetadataOnly_PropEditAppliesTemplateInPlace()
+    {
+        // Simulates the converter's metadata-only path: all tracks kept, just rename via mkvpropedit.
+        var info = await MkvMerge.GetFileInfo(_workingCopy);
+        var file = new MediaFile { OriginalLanguage = "English" };
+        file.SetFileData(info.Result);
+
+        // Profile that keeps ALL tracks but standardizes names
+        var profile = new Profile
+        {
+            AudioSettings = new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English"), IsoLanguage.Find("French")],
+                KeepOriginalLanguage = true,
+                StandardizeTrackNames = true,
+                TrackNameTemplate = "{language} {codec} {channels}"
+            },
+            SubtitleSettings = new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English"), IsoLanguage.Find("French"), IsoLanguage.Find("Spanish")],
+                KeepOriginalLanguage = true,
+                StandardizeTrackNames = true,
+                TrackNameTemplate = "{language} {hi}"
+            }
+        };
+
+        var allowed = file.GetAllowedTracks(profile);
+        var trackOutputs = file.BuildTrackOutputs(profile, allowed.ToSnapshots(), file.Tracks.ToSnapshots(), false);
+
+        // All 9 tracks should be kept (metadata-only path)
+        Assert.AreEqual(file.TrackCount, allowed.Count, "All tracks should be allowed");
+
+        // Apply via mkvpropedit (in-place, no remux)
+        var result = await MkvPropEdit.EditTrackProperties(_workingCopy, trackOutputs);
+        Assert.IsTrue(result.Success, $"MkvPropEdit failed: {result.Error}");
+
+        // Verify the file was modified in-place
+        var outInfo = await MkvMerge.GetFileInfo(_workingCopy);
+        var outTracks = outInfo.Result!.Tracks;
+
+        Assert.AreEqual(9, outTracks.Count, "Track count should be unchanged");
+
+        // Audio tracks should be renamed
+        Assert.AreEqual("English AAC 2.0", outTracks[1].Properties.TrackName);
+        Assert.AreEqual("English AAC 2.0", outTracks[2].Properties.TrackName);
+        Assert.AreEqual("French AAC 2.0", outTracks[3].Properties.TrackName);
+
+        // Subtitle tracks: {language} {hi} - only SDH track gets the suffix
+        Assert.AreEqual("English", outTracks[4].Properties.TrackName);
+        Assert.AreEqual("English", outTracks[5].Properties.TrackName);  // forced, not HI
+        Assert.AreEqual("English SDH", outTracks[6].Properties.TrackName);
+        Assert.AreEqual("French", outTracks[7].Properties.TrackName);
+        Assert.AreEqual("Spanish", outTracks[8].Properties.TrackName);
     }
 }

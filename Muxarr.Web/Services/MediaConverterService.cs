@@ -254,71 +254,15 @@ public class MediaConverterService(
             return;
         }
 
-        // Correct flags from track names and build desired output.
+        // Build desired output: filter, rename, resolve languages.
         var profile = conversion.MediaFile.Profile;
-        var trackOutputs = new List<TrackOutput>();
-        foreach (var track in conversion.AllowedTracks)
-        {
-            track.CorrectFlagsFromTrackName();
-
-            var trackSettings = track.Type == MediaTrackType.Audio ? profile?.AudioSettings
-                : track.Type == MediaTrackType.Subtitles ? profile?.SubtitleSettings
-                : null;
-
-            // Resolve undetermined language to original language before template application,
-            // so both the track name and language code reflect the resolved language.
-            var originalLanguage = conversion.MediaFile.OriginalLanguage;
-            var totalTracksOfType = conversion.TracksBefore.Count(t => t.Type == track.Type);
-            if (track.ShouldResolveUndetermined(trackSettings, totalTracksOfType, originalLanguage))
-            {
-                var iso = IsoLanguage.Find(originalLanguage!);
-                track.LanguageName = originalLanguage!;
-                track.LanguageCode = iso.ThreeLetterCode!;
-            }
-
-            var output = new TrackOutput
-            {
-                TrackNumber = track.TrackNumber,
-                Type = track.Type.ToMkvMergeType()
-            };
-
-            if (track.Type == MediaTrackType.Video)
-            {
-                if (!conversion.IsCustomConversion && profile is { ClearVideoTrackNames: true })
-                {
-                    output.Name = "";
-                }
-            }
-            else
-            {
-                string? newName = null;
-                if (!conversion.IsCustomConversion && trackSettings != null)
-                {
-                    if (trackSettings is { StandardizeTrackNames: true })
-                    {
-                        newName = track.ApplyTrackNameTemplate(trackSettings.TrackNameTemplate);
-                    }
-                }
-                else if (conversion.IsCustomConversion)
-                {
-                    newName = track.TrackName;
-                }
-
-                output.Name = newName;
-                output.LanguageCode = track.ResolveLanguageCode();
-
-                if (conversion.IsCustomConversion)
-                {
-                    output.IsDefault = track.IsDefault;
-                    output.IsForced = track.IsForced;
-                }
-            }
-
-            trackOutputs.Add(output);
-        }
+        var trackOutputs = conversion.MediaFile.BuildTrackOutputs(
+            profile, conversion.AllowedTracks, conversion.TracksBefore, conversion.IsCustomConversion);
 
         // No tracks to remove — check if metadata-only fix is needed.
-        var hasMetadataChanges = trackOutputs.Any(t => t.Name != null || t.LanguageCode != null || t.IsDefault != null || t.IsForced != null);
+        var hasMetadataChanges = trackOutputs.Any(t =>
+            t.Name != null || t.LanguageCode != null || t.IsDefault != null ||
+            t.IsForced != null || t.IsHearingImpaired != null || t.IsCommentary != null);
         if (!conversion.IsCustomConversion && conversion.AllowedTracks.Count >= conversion.MediaFile.TrackCount)
         {
             var isMatroska = string.Equals(conversion.MediaFile.ContainerType, "Matroska", StringComparison.OrdinalIgnoreCase);

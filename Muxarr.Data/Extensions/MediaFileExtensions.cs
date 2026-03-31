@@ -446,6 +446,79 @@ public static class MediaFileExtensions
         return tracks.Select(t => t.ToSnapshot()).ToList();
     }
 
+    // Conversion output building
+
+    /// <summary>
+    /// Builds the desired output for a conversion: filters tracks, applies templates, resolves languages.
+    /// This is the core logic that determines what gets sent to mkvmerge/mkvpropedit.
+    /// </summary>
+    public static List<TrackOutput> BuildTrackOutputs(this MediaFile file, Profile? profile,
+        List<TrackSnapshot> allowedTracks, List<TrackSnapshot> tracksBefore, bool isCustomConversion)
+    {
+        var trackOutputs = new List<TrackOutput>();
+        foreach (var track in allowedTracks)
+        {
+            track.CorrectFlagsFromTrackName();
+
+            var trackSettings = track.Type == MediaTrackType.Audio ? profile?.AudioSettings
+                : track.Type == MediaTrackType.Subtitles ? profile?.SubtitleSettings
+                : null;
+
+            var originalLanguage = file.OriginalLanguage;
+            var totalTracksOfType = tracksBefore.Count(t => t.Type == track.Type);
+            if (track.ShouldResolveUndetermined(trackSettings, totalTracksOfType, originalLanguage))
+            {
+                var iso = IsoLanguage.Find(originalLanguage!);
+                track.LanguageName = originalLanguage!;
+                track.LanguageCode = iso.ThreeLetterCode!;
+            }
+
+            var output = new TrackOutput
+            {
+                TrackNumber = track.TrackNumber,
+                Type = track.Type.ToMkvMergeType()
+            };
+
+            if (track.Type == MediaTrackType.Video)
+            {
+                if (!isCustomConversion && profile is { ClearVideoTrackNames: true })
+                {
+                    output.Name = "";
+                }
+            }
+            else
+            {
+                string? newName = null;
+                if (!isCustomConversion && trackSettings != null)
+                {
+                    if (trackSettings is { StandardizeTrackNames: true })
+                    {
+                        newName = track.ApplyTrackNameTemplate(trackSettings.TrackNameTemplate);
+                    }
+                }
+                else if (isCustomConversion)
+                {
+                    newName = track.TrackName;
+                }
+
+                output.Name = newName;
+                output.LanguageCode = track.ResolveLanguageCode();
+
+                if (isCustomConversion)
+                {
+                    output.IsDefault = track.IsDefault;
+                    output.IsForced = track.IsForced;
+                    output.IsHearingImpaired = track.IsHearingImpaired;
+                    output.IsCommentary = track.IsCommentary;
+                }
+            }
+
+            trackOutputs.Add(output);
+        }
+
+        return trackOutputs;
+    }
+
     // Helpers
 
     public static MediaTrackType ToMediaTrackType(this string type)

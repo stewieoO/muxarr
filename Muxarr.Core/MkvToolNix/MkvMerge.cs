@@ -41,6 +41,11 @@ public static class MkvMerge
     public static async Task<ProcessResult> RemuxFile(string file, string outputFile, List<TrackOutput> tracks,
         Action<string, int>? onProgress = null)
     {
+        if (tracks.Count == 0)
+        {
+            throw new ArgumentException("At least one track is required.", nameof(tracks));
+        }
+
         var audioTracks = tracks.Where(t => t.Type == AudioTrack).ToList();
         var subtitleTracks = tracks.Where(t => t.Type == SubtitlesTrack).ToList();
 
@@ -81,6 +86,14 @@ public static class MkvMerge
             if (track.IsForced != null)
             {
                 command += $" --forced-display-flag {track.TrackNumber}:{(track.IsForced.Value ? "1" : "0")}";
+            }
+            if (track.IsHearingImpaired != null)
+            {
+                command += $" --hearing-impaired-flag {track.TrackNumber}:{(track.IsHearingImpaired.Value ? "1" : "0")}";
+            }
+            if (track.IsCommentary != null)
+            {
+                command += $" --commentary-flag {track.TrackNumber}:{(track.IsCommentary.Value ? "1" : "0")}";
             }
         }
 
@@ -190,4 +203,6 @@ public class TrackOutput
     public string? LanguageCode { get; set; }
     public bool? IsDefault { get; set; }
     public bool? IsForced { get; set; }
+    public bool? IsHearingImpaired { get; set; }
+    public bool? IsCommentary { get; set; }
 }
