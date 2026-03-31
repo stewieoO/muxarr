@@ -99,6 +99,9 @@ public static class MkvMerge
 
         command += $" \"{file}\"";
 
+        // Explicit track order so reordered tracks appear in the requested sequence.
+        command += $" --track-order {string.Join(",", tracks.Select(t => $"0:{t.TrackNumber}"))}";
+
         var lastProgress = 0;
         return await ProcessExecutor.ExecuteProcessAsync(MkvMergeExecutable, command, TimeSpan.FromMinutes(60), onOutputLine: OnOutputLine);
 

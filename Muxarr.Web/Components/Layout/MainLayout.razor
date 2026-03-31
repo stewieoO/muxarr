@@ -71,7 +71,7 @@
             _isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
         }
     }
-    
+
     public async Task ToggleTheme()
     {
         await using var context = await ContextFactory.CreateDbContextAsync();

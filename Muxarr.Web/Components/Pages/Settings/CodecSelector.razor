@@ -1,0 +1,21 @@
+@using Muxarr.Core.Extensions
+
+<TagSelector TItem="string" SelectedItems="SelectedItems" OnSearchInput="OnSearchInput">
+    <TagTemplate>@context</TagTemplate>
+    <ListTemplate>@context</ListTemplate>
+</TagSelector>
+
+@code {
+    [Parameter, EditorRequired] public required List<string> SelectedItems { get; set; }
+
+    private Task<List<string>> OnSearchInput(string query)
+    {
+        var results = CodecExtensions.KnownSubtitleCodecs
+            .Where(c => !SelectedItems.Contains(c, StringComparer.OrdinalIgnoreCase))
+            .Where(c => string.IsNullOrEmpty(query)
+                        || c.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        return Task.FromResult(results);
+    }
+}

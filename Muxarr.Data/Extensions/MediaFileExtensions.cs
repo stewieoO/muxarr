@@ -169,6 +169,12 @@ public static class MediaFileExtensions
                 }
             }
 
+            if (s.ExcludeCodecs && s.ExcludedCodecs.Count > 0)
+            {
+                filteredTracks = filteredTracks.Where(t =>
+                    !s.ExcludedCodecs.Contains(t.Codec, StringComparer.OrdinalIgnoreCase));
+            }
+
             allowedTracks.AddRange(filteredTracks);
         }
 
@@ -478,7 +484,11 @@ public static class MediaFileExtensions
 
             if (track.Type == MediaTrackType.Video)
             {
-                if (!isCustomConversion && profile is { ClearVideoTrackNames: true })
+                if (isCustomConversion)
+                {
+                    output.Name = track.TrackName ?? "";
+                }
+                else if (profile is { ClearVideoTrackNames: true })
                 {
                     output.Name = "";
                 }
@@ -517,7 +527,7 @@ public static class MediaFileExtensions
                 || output.IsForced != null || output.IsHearingImpaired != null || output.IsCommentary != null;
         }
 
-        return (output.Name != null && !string.Equals(output.Name, original.TrackName, StringComparison.Ordinal))
+        return (output.Name != null && !string.Equals(output.Name ?? "", original.TrackName ?? "", StringComparison.Ordinal))
             || (output.LanguageCode != null && !string.Equals(output.LanguageCode, original.LanguageCode, StringComparison.Ordinal))
             || (output.IsDefault != null && output.IsDefault != original.IsDefault)
             || (output.IsForced != null && output.IsForced != original.IsForced)

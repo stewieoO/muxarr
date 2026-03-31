@@ -2,6 +2,21 @@ namespace Muxarr.Core.Extensions;
 
 public static class CodecExtensions
 {
+    /// <summary>
+    /// All known subtitle codecs (formatted names). Used to pre-populate the codec
+    /// exclusion selector so users can exclude codecs not yet present in their library.
+    /// </summary>
+    public static readonly string[] KnownSubtitleCodecs =
+    [
+        "SRT",
+        "ASS/SSA",
+        "PGS",
+        "VobSub",
+        "Timed Text",
+        "WebVTT",
+        "DVB Subtitle",
+    ];
+
     public static string FormatCodec(this string codec)
     {
         var upper = codec.ToUpperInvariant();
@@ -34,9 +49,10 @@ public static class CodecExtensions
             "VORBIS" => "Vorbis",
             "MP3" or "MPEG AUDIO" => "MP3",
             "SUBRIP" or "SRT" or "SUBRIP/SRT" => "SRT",
-            "ASS" or "SSA" or "SUBSTATIONALPHAASS" => "ASS/SSA",
-            "HDMV_PGS_SUBTITLE" or "PGS" or "HDMVPGS" => "PGS",
+            "ASS" or "SSA" or "SUBSTATIONALPHA" or "SUBSTATIONALPHAASS" => "ASS/SSA",
+            "HDMV PGS" or "HDMV_PGS_SUBTITLE" or "PGS" or "HDMVPGS" => "PGS",
             "VOBSUB" => "VobSub",
+            "TIMED TEXT" or "TIMEDTEXT" => "Timed Text",
             _ => codec
         };
     }

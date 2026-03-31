@@ -346,6 +346,39 @@ public class ConversionPipelineTests
         Assert.AreEqual("Keep This", outputs[1].Name);
     }
 
+    [TestMethod]
+    public void Pipeline_CustomConversion_PreservesTrackOrder()
+    {
+        // When the user reorders tracks in the custom conversion modal,
+        // BuildTrackOutputs must preserve that order so mkvmerge produces
+        // the output with tracks in the user's chosen sequence.
+        var file = MakeFile("English",
+            Video(0),
+            Audio(1, "English", "AAC", 6),
+            Audio(2, "French", "AAC", 6),
+            Sub(3, "English"),
+            Sub(4, "French"));
+
+        // User reordered: French audio before English, French sub before English
+        var customAllowed = new List<TrackSnapshot>
+        {
+            new() { Type = MediaTrackType.Video, TrackNumber = 0 },
+            new() { Type = MediaTrackType.Audio, TrackNumber = 2, LanguageName = "French", LanguageCode = "fre", Codec = "AAC", AudioChannels = 6 },
+            new() { Type = MediaTrackType.Audio, TrackNumber = 1, LanguageName = "English", LanguageCode = "eng", Codec = "AAC", AudioChannels = 6 },
+            new() { Type = MediaTrackType.Subtitles, TrackNumber = 4, LanguageName = "French", LanguageCode = "fre", Codec = "SRT" },
+            new() { Type = MediaTrackType.Subtitles, TrackNumber = 3, LanguageName = "English", LanguageCode = "eng", Codec = "SRT" },
+        };
+
+        var outputs = file.BuildTrackOutputs(null, customAllowed, file.Tracks.ToSnapshots(), isCustomConversion: true);
+
+        // Output order must match the input order, not the original track numbers
+        Assert.AreEqual(0, outputs[0].TrackNumber, "Video first");
+        Assert.AreEqual(2, outputs[1].TrackNumber, "French audio second (reordered)");
+        Assert.AreEqual(1, outputs[2].TrackNumber, "English audio third (reordered)");
+        Assert.AreEqual(4, outputs[3].TrackNumber, "French sub fourth (reordered)");
+        Assert.AreEqual(3, outputs[4].TrackNumber, "English sub fifth (reordered)");
+    }
+
     // --- Flag correction from track names ---
 
     [TestMethod]
@@ -541,6 +574,85 @@ public class ConversionPipelineTests
         Assert.AreEqual(3, subOutputs.Count);
         Assert.IsTrue(subOutputs.All(o => o.Name == "English" || o.Name == "Dutch"),
             $"All sub names should be clean: {string.Join(", ", subOutputs.Select(o => o.Name))}");
+    }
+
+    // --- Codec exclusion ---
+
+    [TestMethod]
+    public void Pipeline_ExcludedCodecs_RemovesPGS()
+    {
+        var file = MakeFile("English",
+            Video(0),
+            Audio(1, "English", "AAC", 6),
+            Sub(2, "English"),
+            Sub(3, "English", trackName: "English PGS"));
+
+        // Override the codec on track 3 since the Sub helper defaults to SRT
+        file.Tracks.First(t => t.TrackNumber == 3).Codec = "PGS";
+
+        var profile = MakeProfile(
+            subtitle: new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English")],
+                ExcludeCodecs = true,
+                ExcludedCodecs = ["PGS"]
+            });
+
+        var (allowed, outputs) = RunPipeline(file, profile);
+
+        var subs = allowed.Where(t => t.Type == MediaTrackType.Subtitles).ToList();
+        Assert.AreEqual(1, subs.Count, "PGS subtitle should be removed");
+        Assert.AreEqual("SRT", subs[0].Codec, "Only SRT subtitle should remain");
+    }
+
+    [TestMethod]
+    public void Pipeline_ExcludedCodecs_AllExcluded_ResultsInEmpty()
+    {
+        var file = MakeFile("English",
+            Video(0),
+            Audio(1, "English", "AAC", 6),
+            Sub(2, "English"));
+
+        file.Tracks.First(t => t.TrackNumber == 2).Codec = "PGS";
+
+        var profile = MakeProfile(
+            subtitle: new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English")],
+                ExcludeCodecs = true,
+                ExcludedCodecs = ["PGS"]
+            });
+
+        var (allowed, _) = RunPipeline(file, profile);
+
+        Assert.AreEqual(0, allowed.Count(t => t.Type == MediaTrackType.Subtitles),
+            "All subtitles can be removed when all are excluded codecs");
+    }
+
+    [TestMethod]
+    public void Pipeline_ExcludedCodecs_EmptyList_KeepsAll()
+    {
+        var file = MakeFile("English",
+            Video(0),
+            Audio(1, "English", "AAC", 6),
+            Sub(2, "English"));
+
+        file.Tracks.First(t => t.TrackNumber == 2).Codec = "PGS";
+
+        var profile = MakeProfile(
+            subtitle: new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English")],
+                ExcludedCodecs = []
+            });
+
+        var (allowed, _) = RunPipeline(file, profile);
+
+        Assert.AreEqual(1, allowed.Count(t => t.Type == MediaTrackType.Subtitles),
+            "Empty exclusion list should keep all codecs");
     }
 
     // --- Edge cases: data safety ---
@@ -838,6 +950,175 @@ public class ConversionPipelineTests
         Assert.IsFalse(allowed.Any(t => t.IsCommentary || t.IsHearingImpaired));
     }
 
+    // --- DiffersFrom ---
+
+    [TestMethod]
+    public void DiffersFrom_NullOriginal_AllPropertiesNull_NoDiff()
+    {
+        var output = new TrackOutput { TrackNumber = 0, Type = MkvMerge.VideoTrack };
+        Assert.IsFalse(output.DiffersFrom(null));
+    }
+
+    [TestMethod]
+    public void DiffersFrom_NullOriginal_WithNameSet_Differs()
+    {
+        var output = new TrackOutput { TrackNumber = 0, Type = MkvMerge.VideoTrack, Name = "test" };
+        Assert.IsTrue(output.DiffersFrom(null));
+    }
+
+    [TestMethod]
+    public void DiffersFrom_IdenticalTrack_NoDiff()
+    {
+        var original = new TrackSnapshot
+        {
+            TrackNumber = 1, Type = MediaTrackType.Audio,
+            TrackName = "English 5.1", LanguageCode = "eng",
+            IsDefault = true, IsForced = false, IsHearingImpaired = false, IsCommentary = false
+        };
+        var output = new TrackOutput
+        {
+            TrackNumber = 1, Type = MkvMerge.AudioTrack,
+            Name = "English 5.1", LanguageCode = "eng",
+            IsDefault = true, IsForced = false, IsHearingImpaired = false, IsCommentary = false
+        };
+
+        Assert.IsFalse(output.DiffersFrom(original));
+    }
+
+    [TestMethod]
+    public void DiffersFrom_NameChanged_Differs()
+    {
+        var original = new TrackSnapshot
+        {
+            TrackNumber = 1, Type = MediaTrackType.Audio,
+            TrackName = "English", LanguageCode = "eng"
+        };
+        var output = new TrackOutput
+        {
+            TrackNumber = 1, Type = MkvMerge.AudioTrack,
+            Name = "English 5.1", LanguageCode = "eng"
+        };
+
+        Assert.IsTrue(output.DiffersFrom(original));
+    }
+
+    [TestMethod]
+    public void DiffersFrom_ClearVideoName_NullTrackName_NoDiff()
+    {
+        // The exact bug: ClearVideoTrackNames sets Name="" on a track that already has null name.
+        // MKV treats "" and null as identical (no name), so this should NOT be a diff.
+        var original = new TrackSnapshot
+        {
+            TrackNumber = 0, Type = MediaTrackType.Video, TrackName = null
+        };
+        var output = new TrackOutput
+        {
+            TrackNumber = 0, Type = MkvMerge.VideoTrack, Name = ""
+        };
+
+        Assert.IsFalse(output.DiffersFrom(original));
+    }
+
+    [TestMethod]
+    public void DiffersFrom_ClearVideoName_EmptyTrackName_NoDiff()
+    {
+        var original = new TrackSnapshot
+        {
+            TrackNumber = 0, Type = MediaTrackType.Video, TrackName = ""
+        };
+        var output = new TrackOutput
+        {
+            TrackNumber = 0, Type = MkvMerge.VideoTrack, Name = ""
+        };
+
+        Assert.IsFalse(output.DiffersFrom(original));
+    }
+
+    [TestMethod]
+    public void DiffersFrom_ClearVideoName_HasExistingName_Differs()
+    {
+        var original = new TrackSnapshot
+        {
+            TrackNumber = 0, Type = MediaTrackType.Video, TrackName = "x264 - Scene"
+        };
+        var output = new TrackOutput
+        {
+            TrackNumber = 0, Type = MkvMerge.VideoTrack, Name = ""
+        };
+
+        Assert.IsTrue(output.DiffersFrom(original));
+    }
+
+    [TestMethod]
+    public void DiffersFrom_FlagChanged_Differs()
+    {
+        var original = new TrackSnapshot
+        {
+            TrackNumber = 2, Type = MediaTrackType.Subtitles,
+            TrackName = "English", LanguageCode = "eng",
+            IsDefault = false, IsForced = false, IsHearingImpaired = false, IsCommentary = false
+        };
+        var output = new TrackOutput
+        {
+            TrackNumber = 2, Type = MkvMerge.SubtitlesTrack,
+            Name = "English", LanguageCode = "eng",
+            IsDefault = false, IsForced = true, IsHearingImpaired = false, IsCommentary = false
+        };
+
+        Assert.IsTrue(output.DiffersFrom(original));
+    }
+
+    [TestMethod]
+    public void DiffersFrom_OnlyUnsetProperties_NoDiff()
+    {
+        // When output leaves properties as null, they mean "keep original" — no diff.
+        var original = new TrackSnapshot
+        {
+            TrackNumber = 0, Type = MediaTrackType.Video,
+            TrackName = "x264", LanguageCode = "eng",
+            IsDefault = true, IsForced = false, IsHearingImpaired = false, IsCommentary = true
+        };
+        var output = new TrackOutput { TrackNumber = 0, Type = MkvMerge.VideoTrack };
+
+        Assert.IsFalse(output.DiffersFrom(original));
+    }
+
+    [TestMethod]
+    public void Pipeline_ClearVideoTrackNames_AlreadyNull_NoMetadataChange()
+    {
+        // End-to-end: a file where the video track name is already null should not
+        // produce a metadata diff when ClearVideoTrackNames is enabled.
+        var file = MakeFile("Korean",
+            Video(0),
+            Audio(1, "Korean", "AC-3", 6, trackName: "Korean 5.1"),
+            Sub(2, "Korean", forced: true, trackName: "Korean"));
+
+        var profile = MakeProfile(
+            audio: new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("Korean")],
+                StandardizeTrackNames = true,
+                TrackNameTemplate = "{language} {channels}"
+            },
+            subtitle: new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("Korean")],
+                StandardizeTrackNames = true,
+                TrackNameTemplate = "{language}"
+            },
+            clearVideoNames: true);
+
+        var (_, outputs) = RunPipeline(file, profile);
+        var tracksBefore = file.Tracks.ToSnapshots();
+
+        var hasMetadataChanges = outputs.Any(t =>
+            t.DiffersFrom(tracksBefore.FirstOrDefault(b => b.TrackNumber == t.TrackNumber)));
+
+        Assert.IsFalse(hasMetadataChanges, "File with null video name and ClearVideoTrackNames should be considered optimal");
+    }
+
     // --- Helpers ---
 
     private static (List<TrackSnapshot> allowed, List<TrackOutput> outputs) RunPipeline(MediaFile file, Profile profile)
@@ -872,7 +1153,7 @@ public class ConversionPipelineTests
         return file;
     }
 
-    private static MediaTrack Video(int trackNumber, string trackName = "") => new()
+    private static MediaTrack Video(int trackNumber, string? trackName = null) => new()
     {
         Type = MediaTrackType.Video, TrackNumber = trackNumber, TrackName = trackName,
         LanguageCode = "und", LanguageName = "Undetermined", Codec = "H.265 / HEVC"

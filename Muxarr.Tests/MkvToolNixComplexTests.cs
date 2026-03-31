@@ -274,6 +274,44 @@ public class MkvToolNixComplexTests
         }
     }
 
+    [TestMethod]
+    public async Task RemuxFile_ReorderedTracks_OutputMatchesRequestedOrder()
+    {
+        // test_complex.mkv has: track 1 = English audio, track 3 = French audio
+        // Request them in reverse order and verify the output reflects that.
+        var output = _workingCopy + ".reorder.mkv";
+        try
+        {
+            var tracks = new List<TrackOutput>
+            {
+                new() { TrackNumber = 0, Type = MkvMerge.VideoTrack },
+                new() { TrackNumber = 3, Type = MkvMerge.AudioTrack, Name = "French First" },
+                new() { TrackNumber = 1, Type = MkvMerge.AudioTrack, Name = "English Second" },
+                new() { TrackNumber = 5, Type = MkvMerge.SubtitlesTrack, Name = "Forced First" },
+                new() { TrackNumber = 4, Type = MkvMerge.SubtitlesTrack, Name = "Regular Second" },
+            };
+
+            var result = await MkvMerge.RemuxFile(_workingCopy, output, tracks);
+            Assert.IsTrue(MkvMerge.IsSuccess(result), $"RemuxFile failed: {result.Error}");
+
+            var info = await MkvMerge.GetFileInfo(output);
+            var audioTracks = info.Result!.Tracks.Where(t => t.Type == "audio").ToList();
+            var subTracks = info.Result.Tracks.Where(t => t.Type == "subtitles").ToList();
+
+            Assert.AreEqual("French First", audioTracks[0].Properties.TrackName, "French audio should be first");
+            Assert.AreEqual("English Second", audioTracks[1].Properties.TrackName, "English audio should be second");
+            Assert.AreEqual("Forced First", subTracks[0].Properties.TrackName, "Forced sub should be first");
+            Assert.AreEqual("Regular Second", subTracks[1].Properties.TrackName, "Regular sub should be second");
+        }
+        finally
+        {
+            if (File.Exists(output))
+            {
+                File.Delete(output);
+            }
+        }
+    }
+
     // --- PropEdit with default/forced flags ---
 
     [TestMethod]

@@ -70,6 +70,22 @@
                 }
             </div>
         }
+
+        @if (!IsAudio)
+        {
+            <div class="mb-3 form-check form-switch">
+                <InputCheckbox id="excludeCodecs" class="form-check-input" @bind-Value="Settings.ExcludeCodecs" />
+                <label class="form-check-label" for="excludeCodecs">Exclude Subtitle Codecs</label>
+                <small class="form-text text-muted d-block">Remove subtitle tracks that match specific codecs during conversion. Useful for dropping image-based formats like PGS or VobSub.</small>
+            </div>
+
+            @if (Settings.ExcludeCodecs)
+            {
+                <div class="mb-3 ms-4">
+                    <CodecSelector SelectedItems="Settings.ExcludedCodecs" />
+                </div>
+            }
+        }
     }
 </div>
 

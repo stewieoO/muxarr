@@ -27,6 +27,8 @@ namespace Muxarr.Data.Entities
         public bool AssumeUndeterminedIsOriginal { get; set; }
         public bool StandardizeTrackNames { get; set; }
         public string TrackNameTemplate { get; set; } = string.Empty;
+        public bool ExcludeCodecs { get; set; }
+        public List<string> ExcludedCodecs { get; set; } = [];
     }
 
     public class ProfileConfiguration : AuditEntityConfiguration<Profile>
