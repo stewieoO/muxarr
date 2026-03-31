@@ -278,7 +278,8 @@ public static class MediaFileExtensions
 
             if (settings.StandardizeTrackNames)
             {
-                var expected = track.ApplyTrackNameTemplate(settings.TrackNameTemplate);
+                var template = settings.ResolveTemplate(track);
+                var expected = track.ApplyTrackNameTemplate(template);
                 if (!string.Equals(track.TrackName, expected, StringComparison.Ordinal))
                 {
                     return true;
@@ -353,7 +354,8 @@ public static class MediaFileExtensions
 
         if (standardizeNames && settings is { StandardizeTrackNames: true })
         {
-            track.TrackName = track.ApplyTrackNameTemplate(settings.TrackNameTemplate);
+            var template = settings.ResolveTemplate(track);
+            track.TrackName = track.ApplyTrackNameTemplate(template);
         }
     }
 

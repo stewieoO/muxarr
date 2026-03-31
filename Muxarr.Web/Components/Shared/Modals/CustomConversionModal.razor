@@ -234,12 +234,8 @@
                 ? Profile.AudioSettings
                 : Profile.SubtitleSettings;
 
-            track.CorrectFlagsFromTrackName();
-
-            if (settings.StandardizeTrackNames)
-            {
-                track.TrackName = track.ApplyTrackNameTemplate(settings.TrackNameTemplate);
-            }
+            var totalTracksOfType = _editableTracks.Count(t => t.Type == track.Type);
+            track.ApplyTrackMutations(settings, totalTracksOfType, tempFile.OriginalLanguage);
         }
 
         _validationError = false;

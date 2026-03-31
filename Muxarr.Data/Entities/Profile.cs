@@ -27,8 +27,28 @@ namespace Muxarr.Data.Entities
         public bool AssumeUndeterminedIsOriginal { get; set; }
         public bool StandardizeTrackNames { get; set; }
         public string TrackNameTemplate { get; set; } = string.Empty;
+        public Dictionary<TrackFlag, string> TrackNameOverrides { get; set; } = new();
         public bool ExcludeCodecs { get; set; }
         public List<string> ExcludedCodecs { get; set; } = [];
+
+        /// <summary>
+        /// Returns the first matching flag-specific override, or the default template.
+        /// Flags are checked in enum order (SDH > Forced > Commentary > AD).
+        /// </summary>
+        public string ResolveTemplate(IMediaTrack track)
+        {
+            foreach (var flag in TrackFlagExtensions.All)
+            {
+                if (flag.Matches(track)
+                    && TrackNameOverrides.TryGetValue(flag, out var overrideTemplate)
+                    && !string.IsNullOrEmpty(overrideTemplate))
+                {
+                    return overrideTemplate;
+                }
+            }
+
+            return TrackNameTemplate;
+        }
     }
 
     public class ProfileConfiguration : AuditEntityConfiguration<Profile>

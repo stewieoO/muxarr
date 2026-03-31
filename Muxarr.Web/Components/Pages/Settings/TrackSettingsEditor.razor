@@ -45,7 +45,8 @@
         @if (Settings.StandardizeTrackNames)
         {
             <div class="mb-3 ms-4">
-                <InputText id="@($"trackNameTemplate{TrackTypeLabel}")" class="form-control" @bind-Value="Settings.TrackNameTemplate" />
+                <div class="option-label text-muted small mb-1">Default template</div>
+                <InputText id="@($"trackNameTemplate{TrackTypeLabel}")" class="form-control form-control-sm" @bind-Value="Settings.TrackNameTemplate" />
                 <small class="form-text text-muted d-block">
                     Placeholders: <code>{language}</code>, <code>{nativelanguage}</code>, <code>{codec}</code>,
                     @if (IsAudio)
@@ -56,6 +57,7 @@
                     <code>{hi}</code>, <code>{forced}</code>, <code>{commentary}</code>, <code>{visualimpaired}</code>, <code>{original}</code>, <code>{flags}</code>.
                     Leave empty to clear all track names.
                 </small>
+
                 @if (!string.IsNullOrWhiteSpace(Settings.TrackNameTemplate))
                 {
                     <div class="mt-2 text-muted small">
@@ -63,11 +65,47 @@
                         <div class="mt-1">
                             @foreach (var track in GetPreviewTracks())
                             {
-                                <div><code>@(track.ApplyTrackNameTemplate(Settings.TrackNameTemplate) ?? "(empty)")</code></div>
+                                var template = Settings.ResolveTemplate(track);
+                                var resolved = track.ApplyTrackNameTemplate(template);
+                                var isOverride = template != Settings.TrackNameTemplate;
+                                <div>
+                                    <code>@(resolved ?? "(empty)")</code>
+                                    @if (isOverride)
+                                    {
+                                        <span class="text-info ms-1" style="font-size: 0.75rem;">override</span>
+                                    }
+                                </div>
                             }
                         </div>
                     </div>
                 }
+
+                <div class="mt-3">
+                    <a class="text-decoration-none small" data-bs-toggle="collapse" href="#@($"flagOverrides{TrackTypeLabel}")" role="button">
+                        <i class="bi bi-sliders me-1"></i>Flag-specific overrides
+                    </a>
+                </div>
+
+                <div class="collapse @(_hasOverrides ? "show" : "")" id="@($"flagOverrides{TrackTypeLabel}")">
+                    <div class="d-flex flex-column gap-2 mt-2 ms-2 border-start ps-3">
+                        @foreach (var flag in TrackFlagExtensions.All)
+                        {
+                            var currentFlag = flag;
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-secondary" style="width: 110px;">
+                                    <i class="bi @FlagIcon(flag) me-1"></i>@flag.GetDisplayName()
+                                </span>
+                                <input type="text"
+                                       class="form-control form-control-sm"
+                                       style="max-width: 300px;"
+                                       placeholder="(uses default)"
+                                       value="@GetOverride(currentFlag)"
+                                       @onchange="e => SetOverride(currentFlag, e.Value?.ToString())" />
+                            </div>
+                        }
+                    </div>
+                    <small class="text-muted d-block mt-2">Leave blank to use the default template. First matching flag wins.</small>
+                </div>
             </div>
         }
 
@@ -135,6 +173,34 @@
                 tracks.Add(new TrackSnapshot { Type = MediaTrackType.Subtitles, LanguageName = SecondLanguage, Codec = "SRT" });
             }
             return tracks;
+        }
+    }
+
+    private bool _hasOverrides => Settings.TrackNameOverrides.Any(kv => !string.IsNullOrEmpty(kv.Value));
+
+    private static string FlagIcon(TrackFlag flag) => flag switch
+    {
+        TrackFlag.HearingImpaired => "bi-ear",
+        TrackFlag.Forced => "bi-lock",
+        TrackFlag.Commentary => "bi-chat-quote",
+        TrackFlag.VisualImpaired => "bi-eye",
+        _ => "bi-question-circle"
+    };
+
+    private string GetOverride(TrackFlag flag)
+    {
+        return Settings.TrackNameOverrides.TryGetValue(flag, out var value) ? value : "";
+    }
+
+    private void SetOverride(TrackFlag flag, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            Settings.TrackNameOverrides.Remove(flag);
+        }
+        else
+        {
+            Settings.TrackNameOverrides[flag] = value;
         }
     }
 

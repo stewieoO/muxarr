@@ -260,6 +260,91 @@ public class ConversionPipelineTests
         Assert.IsNull(audio.Name, "Name should be null (don't touch) when standardization is off");
     }
 
+    [TestMethod]
+    public void Pipeline_TrackNameOverrides_UsesSDHTemplate()
+    {
+        var file = MakeFile("English",
+            Video(0),
+            Sub(1, "English"),
+            Sub(2, "English", hi: true),
+            Sub(3, "English", forced: true));
+
+        var profile = MakeProfile(
+            subtitle: new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English")],
+                StandardizeTrackNames = true,
+                TrackNameTemplate = "{language}",
+                TrackNameOverrides = new()
+                {
+                    [TrackFlag.HearingImpaired] = "{language} SDH",
+                    [TrackFlag.Forced] = "{language} Forced"
+                }
+            });
+
+        var (_, outputs) = RunPipeline(file, profile);
+
+        var subs = outputs.Where(o => o.Type == MkvMerge.SubtitlesTrack).ToList();
+        Assert.AreEqual("English", subs[0].Name, "Regular sub uses default template");
+        Assert.AreEqual("English SDH", subs[1].Name, "SDH sub uses HI override");
+        Assert.AreEqual("English Forced", subs[2].Name, "Forced sub uses Forced override");
+    }
+
+    [TestMethod]
+    public void Pipeline_TrackNameOverrides_EmptyOverrideFallsBackToDefault()
+    {
+        var file = MakeFile("English",
+            Video(0),
+            Sub(1, "English", hi: true));
+
+        var profile = MakeProfile(
+            subtitle: new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English")],
+                StandardizeTrackNames = true,
+                TrackNameTemplate = "{language} {hi}",
+                TrackNameOverrides = new()
+                {
+                    [TrackFlag.HearingImpaired] = ""
+                }
+            });
+
+        var (_, outputs) = RunPipeline(file, profile);
+
+        var sub = outputs.First(o => o.Type == MkvMerge.SubtitlesTrack);
+        Assert.AreEqual("English SDH", sub.Name, "Empty override should fall back to default template");
+    }
+
+    [TestMethod]
+    public void Pipeline_TrackNameOverrides_FirstMatchingFlagWins()
+    {
+        var file = MakeFile("English",
+            Video(0),
+            // Track is both HI and forced - HI should win (checked first in enum order)
+            Sub(1, "English", hi: true, forced: true));
+
+        var profile = MakeProfile(
+            subtitle: new TrackSettings
+            {
+                Enabled = true,
+                AllowedLanguages = [IsoLanguage.Find("English")],
+                StandardizeTrackNames = true,
+                TrackNameTemplate = "{language}",
+                TrackNameOverrides = new()
+                {
+                    [TrackFlag.HearingImpaired] = "{language} (SDH)",
+                    [TrackFlag.Forced] = "{language} (Forced)"
+                }
+            });
+
+        var (_, outputs) = RunPipeline(file, profile);
+
+        var sub = outputs.First(o => o.Type == MkvMerge.SubtitlesTrack);
+        Assert.AreEqual("English (SDH)", sub.Name, "HI is checked before Forced in enum order");
+    }
+
     // --- Undetermined language resolution ---
 
     [TestMethod]
