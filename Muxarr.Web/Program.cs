@@ -44,6 +44,7 @@ await builder.RunWithLoggingAsync(async b =>
     // Media services and related classes
     b.Services.AddSingleton<ArrApiClient>();
     b.Services.AddScoped<LibraryStatsService>();
+    b.Services.AddScoped<TooltipService>();
     b.Services.AddScheduledService<TimeAgoService>(); // For shared timers.
     b.Services.AddScheduledService<MediaConverterService>();
     b.Services.AddScheduledService<ArrSyncService>();

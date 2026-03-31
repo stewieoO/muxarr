@@ -1,36 +1,37 @@
+@inherits DisposableComponent
+@inject TooltipService TooltipService
+
 @if (string.IsNullOrEmpty(Tip))
 {
     @ChildContent
 }
 else
 {
-    <div class="tooltip-container">
-        <div class="tooltip-content" @onmouseenter="ShowToolTip" @onmouseleave="HideToolTip">
-            @ChildContent
-        </div>
-        <div class="@TooltipClassList">
-            @Tip
-        </div>
-    </div>
+    <span @onmouseenter="Show"
+          @onmouseleave="Hide">
+        @ChildContent
+    </span>
 }
 
 @code {
     [Parameter] public string? Tip { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
-    [Parameter] public string Position { get; set; } = "top";
-    
-    private bool _isVisible;
-    private string TooltipClassList => $"tooltip-text {Position} {(_isVisible ? "visible" : "")}";
-    
-    private void ShowToolTip()
+
+    private void Show(MouseEventArgs e)
     {
-        _isVisible = true;
-        StateHasChanged();
+        var elementTop = e.ClientY - e.OffsetY;
+        var y = elementTop - 8;
+
+        TooltipService.Show(Tip!, e.ClientX, y, flipped: y < 4);
     }
 
-    private void HideToolTip()
+    private void Hide()
     {
-        _isVisible = false;
-        StateHasChanged();
+        TooltipService.Hide();
+    }
+
+    public override void Dispose()
+    {
+        TooltipService.Hide();
     }
 }

@@ -1,0 +1,27 @@
+@inherits DisposableComponent
+@inject TooltipService Tooltip
+
+@if (Tooltip.IsVisible)
+{
+    <div class="mux-tooltip @(Tooltip.Flipped ? "mux-tooltip-below" : "")"
+         style="left: @(Tooltip.X.ToString("F0"))px; top: @(Tooltip.Y.ToString("F0"))px;">
+        @Tooltip.Text
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Tooltip.Subscribe(OnTooltipChanged);
+    }
+
+    private void OnTooltipChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public override void Dispose()
+    {
+        Tooltip.Unsubscribe(OnTooltipChanged);
+    }
+}

@@ -2,27 +2,30 @@
     <i class="bi @GetTrackTypeIcon(Track.Type) me-1"></i>@(Track.Type == MediaTrackType.Video ? "Video" : ResolvedLanguage ?? Track.LanguageName)@if (Track.GetChannelLayout() is { } channels) {<span class="opacity-75 ms-1">@channels</span>}
     @if (Track.IsHearingImpaired)
     {
-        <i class="bi bi-ear ms-1" title="Hearing Impaired"></i>
+        <ToolTip Tip="Hearing Impaired (SDH)"><i class="bi bi-ear ms-1"></i></ToolTip>
     }
     @if (Track.IsCommentary)
     {
-        <i class="bi bi-chat-quote ms-1" title="Commentary"></i>
-    }
-    @if (Track.IsOriginal)
-    {
-        <i class="bi bi-check-circle ms-1" title="Original"></i>
-    }
-    @if (Track.IsVisualImpaired)
-    {
-        <i class="bi bi-eye ms-1" title="Visual Impaired"></i>
+        <ToolTip Tip="Commentary"><i class="bi bi-chat-quote ms-1"></i></ToolTip>
     }
     @if (Track.IsForced)
     {
-        <i class="bi bi-lock ms-1" title="Forced"></i>
+        <ToolTip Tip="Forced - shows even when subtitles are off"><i class="bi bi-lock ms-1"></i></ToolTip>
     }
-    @if (Track.IsDefault)
+    @if (ShowAllFlags)
     {
-        <i class="bi bi-star-fill ms-1" title="Default"></i>
+        @if (Track.IsOriginal)
+        {
+            <ToolTip Tip="Original language track"><i class="bi bi-check-circle ms-1"></i></ToolTip>
+        }
+        @if (Track.IsVisualImpaired)
+        {
+            <ToolTip Tip="Visual Impaired (Audio Description)"><i class="bi bi-eye ms-1"></i></ToolTip>
+        }
+        @if (Track.IsDefault)
+        {
+            <ToolTip Tip="Default - player will auto-select this track"><i class="bi bi-play-circle ms-1"></i></ToolTip>
+        }
     }
 </span>
 
@@ -31,6 +34,8 @@
 
     [Parameter] public string? ResolvedLanguage { get; set; }
 
+    [Parameter] public bool ShowAllFlags { get; set; }
+
     private static string GetTrackTypeIcon(MediaTrackType trackType)
     {
         return trackType switch
@@ -38,7 +43,7 @@
             MediaTrackType.Video => "bi-film",
             MediaTrackType.Audio => "bi-volume-up",
             MediaTrackType.Subtitles => "bi-chat-text",
-            _ => "bi-question-circle" // Fallback for unknown types
+            _ => "bi-question-circle"
         };
     }
 
@@ -46,10 +51,10 @@
     {
         return trackType switch
         {
-            MediaTrackType.Video => "bg-success text-white",    // Blue for Video
-            MediaTrackType.Audio => "bg-primary text-white",   // Green for Audio
-            MediaTrackType.Subtitles => "bg-warning text-dark", // Yellow for Subtitles
-            _ => "bg-secondary text-white"                     // Grey for Unknown
+            MediaTrackType.Video => "bg-success text-white",
+            MediaTrackType.Audio => "bg-primary text-white",
+            MediaTrackType.Subtitles => "bg-warning text-dark",
+            _ => "bg-secondary text-white"
         };
     }
 }

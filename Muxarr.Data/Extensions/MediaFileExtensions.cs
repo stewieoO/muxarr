@@ -279,15 +279,6 @@ public static class MediaFileExtensions
                 }
             }
 
-            if (settings.DefaultTrack != DefaultTrackRule.None)
-            {
-                var tracksOfType = allowedTracks.Where(t => t.Type == track.Type).ToList();
-                var expectedDefault = DetermineDefaultTrack(tracksOfType, settings.DefaultTrack, file.OriginalLanguage);
-                if (expectedDefault != null && track.IsDefault != (track.TrackNumber == expectedDefault.TrackNumber))
-                {
-                    return true;
-                }
-            }
         }
 
         return false;
@@ -345,28 +336,7 @@ public static class MediaFileExtensions
             previews.Add(preview);
         }
 
-        // Apply default track flags to previews
-        ApplyDefaultPreviewFlags(previews, MediaTrackType.Audio, profile.AudioSettings, file.OriginalLanguage);
-        ApplyDefaultPreviewFlags(previews, MediaTrackType.Subtitles, profile.SubtitleSettings, file.OriginalLanguage);
-
         return previews;
-    }
-
-    private static void ApplyDefaultPreviewFlags(List<TrackSnapshot> previews, MediaTrackType type,
-        TrackSettings settings, string? originalLanguage)
-    {
-        if (settings.DefaultTrack == DefaultTrackRule.None)
-        {
-            return;
-        }
-
-        var tracksOfType = previews.Where(t => t.Type == type).ToList();
-        var defaultTrack = DetermineDefaultTrack(tracksOfType, settings.DefaultTrack, originalLanguage);
-
-        foreach (var track in tracksOfType)
-        {
-            track.IsDefault = track.TrackNumber == defaultTrack?.TrackNumber;
-        }
     }
 
     // Mutation methods — TrackSnapshot only (used at conversion time on snapshot copies)
@@ -474,61 +444,6 @@ public static class MediaFileExtensions
     public static List<TrackSnapshot> ToSnapshots(this IEnumerable<IMediaTrack> tracks)
     {
         return tracks.Select(t => t.ToSnapshot()).ToList();
-    }
-
-    // Default track logic
-
-    public static T? DetermineDefaultTrack<T>(List<T> tracks, DefaultTrackRule rule, string? originalLanguage)
-        where T : IMediaTrack
-    {
-        if (rule == DefaultTrackRule.None || tracks.Count == 0)
-        {
-            return default;
-        }
-
-        if (rule == DefaultTrackRule.OriginalLanguage && !string.IsNullOrEmpty(originalLanguage))
-        {
-            var originalTrack = tracks.FirstOrDefault(t => t.LanguageName == originalLanguage);
-            if (originalTrack != null)
-            {
-                return originalTrack;
-            }
-        }
-
-        return tracks.First();
-    }
-
-    public static void ApplyDefaultTrackFlags(List<TrackOutput> outputs, List<TrackSnapshot> allowedTracks,
-        Profile profile, string? originalLanguage)
-    {
-        ApplyDefaultForType(outputs, allowedTracks, MediaTrackType.Audio, profile.AudioSettings, originalLanguage);
-        ApplyDefaultForType(outputs, allowedTracks, MediaTrackType.Subtitles, profile.SubtitleSettings, originalLanguage);
-    }
-
-    private static void ApplyDefaultForType(List<TrackOutput> outputs, List<TrackSnapshot> allowedTracks,
-        MediaTrackType type, TrackSettings settings, string? originalLanguage)
-    {
-        if (settings.DefaultTrack == DefaultTrackRule.None)
-        {
-            return;
-        }
-
-        var tracksOfType = allowedTracks.Where(t => t.Type == type).ToList();
-        if (tracksOfType.Count == 0)
-        {
-            return;
-        }
-
-        var defaultTrack = DetermineDefaultTrack(tracksOfType, settings.DefaultTrack, originalLanguage);
-
-        foreach (var track in tracksOfType)
-        {
-            var output = outputs.FirstOrDefault(o => o.TrackNumber == track.TrackNumber);
-            if (output != null)
-            {
-                output.IsDefault = track.TrackNumber == defaultTrack?.TrackNumber;
-            }
-        }
     }
 
     // Helpers

@@ -360,3 +360,34 @@
     z-index: 1050;
     display: none;
 }
+
+/* ---- Tooltip (rendered at layout root via TooltipHost) ---- */
+
+.mux-tooltip {
+    position: fixed;
+    transform: translateX(-50%) translateY(-100%);
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    z-index: 999999;
+    pointer-events: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: max-content;
+    max-width: min(40ch, 90vw);
+    white-space: normal;
+    word-wrap: break-word;
+    animation: mux-tooltip-in 0.15s ease-out;
+}
+
+.mux-tooltip-below {
+    transform: translateX(-50%);
+}
+
+@keyframes mux-tooltip-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

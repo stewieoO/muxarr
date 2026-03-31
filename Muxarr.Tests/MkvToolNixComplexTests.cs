@@ -492,7 +492,7 @@ public class MkvToolNixComplexTests
     }
 
     [TestMethod]
-    public async Task EndToEnd_PreviewWithDefaultAndTemplate()
+    public async Task EndToEnd_PreviewWithTemplate()
     {
         var info = await MkvMerge.GetFileInfo(_workingCopy);
         var file = new MediaFile { OriginalLanguage = "English" };
@@ -507,8 +507,7 @@ public class MkvToolNixComplexTests
                 KeepOriginalLanguage = true,
                 RemoveCommentary = true,
                 StandardizeTrackNames = true,
-                TrackNameTemplate = "{language} {channels}",
-                DefaultTrack = DefaultTrackRule.OriginalLanguage
+                TrackNameTemplate = "{language} {channels}"
             },
             SubtitleSettings = new TrackSettings
             {
@@ -517,8 +516,7 @@ public class MkvToolNixComplexTests
                 KeepOriginalLanguage = true,
                 RemoveImpaired = true,
                 StandardizeTrackNames = true,
-                TrackNameTemplate = "{language} {hi}",
-                DefaultTrack = DefaultTrackRule.FirstAllowed
+                TrackNameTemplate = "{language} {hi}"
             }
         };
 
@@ -526,16 +524,14 @@ public class MkvToolNixComplexTests
         var audioPreview = previews.Where(p => p.Type == MediaTrackType.Audio).ToList();
         var subPreview = previews.Where(p => p.Type == MediaTrackType.Subtitles).ToList();
 
-        // Audio: only English 5.1, template applied, set as default
+        // Audio: only English 5.1 kept (commentary removed), template applied
         Assert.AreEqual(1, audioPreview.Count);
         Assert.AreEqual("English 2.0", audioPreview[0].TrackName); // AAC 2ch in fixture
-        Assert.IsTrue(audioPreview[0].IsDefault);
 
-        // Subtitles: regular + forced (SDH removed by RemoveImpaired)
+        // Subtitles: regular + forced (SDH removed by RemoveImpaired), template applied
         Assert.AreEqual(2, subPreview.Count);
-        // First sub should be default
-        Assert.IsTrue(subPreview[0].IsDefault, "First subtitle should be default");
-        Assert.IsFalse(subPreview[1].IsDefault, "Second subtitle should not be default");
+        Assert.AreEqual("English", subPreview[0].TrackName, "Regular sub should not have SDH suffix");
+        Assert.AreEqual("English", subPreview[1].TrackName, "Forced sub is not HI so no SDH suffix");
     }
 
     // --- RemuxFile: combined flags + metadata ---

@@ -4,7 +4,7 @@
 
 <div class="modal-content">
     <div class="modal-body">
-        <p class="mb-3">Select which tracks to keep and edit their names for the output file.</p>
+        <p class="mb-3">Select which tracks to keep and edit their properties for the output file.</p>
 
         @if (_validationError)
         {
@@ -21,7 +21,7 @@
                     <th>Language</th>
                     <th>Format</th>
                     <th>Track Name</th>
-                    <th style="width: 70px;">Default</th>
+                    <th>Flags</th>
                 </tr>
             </thead>
             <tbody>
@@ -76,14 +76,42 @@
                                 <span class="text-muted small">@track.TrackName</span>
                             }
                         </td>
-                        <td class="text-center">
+                        <td>
                             @if (!isVideo)
                             {
-                                <input type="radio"
-                                       class="form-check-input"
-                                       name="@($"default-{track.Type}")"
-                                       checked="@track.IsDefault"
-                                       @onchange="() => SetDefault(track)"/>
+                                <div class="d-flex gap-1">
+                                    <ToolTip Tip="Default - Player will auto-select this track during playback">
+                                        <button type="button"
+                                                class="btn btn-sm @(track.IsDefault ? "btn-primary" : "btn-outline-secondary")"
+                                                @onclick="() => track.IsDefault = !track.IsDefault">
+                                            <i class="bi bi-play-circle"></i>
+                                        </button>
+                                    </ToolTip>
+                                    @if (track.Type == MediaTrackType.Subtitles)
+                                    {
+                                        <ToolTip Tip="Hearing Impaired (SDH) - Includes sound descriptions for deaf/hard of hearing viewers">
+                                            <button type="button"
+                                                    class="btn btn-sm @(track.IsHearingImpaired ? "btn-primary" : "btn-outline-secondary")"
+                                                    @onclick="() => track.IsHearingImpaired = !track.IsHearingImpaired">
+                                                <i class="bi bi-ear"></i>
+                                            </button>
+                                        </ToolTip>
+                                        <ToolTip Tip="Forced - Shows even when subtitles are off. Used for foreign dialogue in otherwise native-language films.">
+                                            <button type="button"
+                                                    class="btn btn-sm @(track.IsForced ? "btn-primary" : "btn-outline-secondary")"
+                                                    @onclick="() => track.IsForced = !track.IsForced">
+                                                <i class="bi bi-lock"></i>
+                                            </button>
+                                        </ToolTip>
+                                    }
+                                    <ToolTip Tip="Commentary - Director/crew commentary track">
+                                        <button type="button"
+                                                class="btn btn-sm @(track.IsCommentary ? "btn-primary" : "btn-outline-secondary")"
+                                                @onclick="() => track.IsCommentary = !track.IsCommentary">
+                                            <i class="bi bi-chat-quote"></i>
+                                        </button>
+                                    </ToolTip>
+                                </div>
                             }
                         </td>
                     </tr>
@@ -124,7 +152,6 @@
 
     protected override void OnInitialized()
     {
-        // Build language list: current track languages first, then all others.
         var trackLanguages = Tracks
             .Where(t => t.Type != MediaTrackType.Video)
             .Select(t => t.LanguageName)
@@ -136,16 +163,13 @@
             .ThenBy(l => l.Name)
             .ToList();
 
-        // Create editable copies of all tracks so we don't mutate the originals.
         _editableTracks = Tracks.Select(t => t.ToSnapshot()).ToList();
 
-        // Always include video tracks
         foreach (var track in _editableTracks.Where(t => t.Type == MediaTrackType.Video))
         {
             _selectedTrackIds.Add(track.TrackNumber);
         }
 
-        // Pre-select profile defaults
         foreach (var track in DefaultAllowedTracks)
         {
             _selectedTrackIds.Add(track.TrackNumber);
@@ -185,14 +209,6 @@
         var iso = IsoLanguage.Find(languageName);
         track.LanguageName = iso.Name;
         track.LanguageCode = iso.ThreeLetterCode ?? track.LanguageCode;
-    }
-
-    private void SetDefault(TrackSnapshot track)
-    {
-        foreach (var t in _editableTracks.Where(t => t.Type == track.Type))
-        {
-            t.IsDefault = t.TrackNumber == track.TrackNumber;
-        }
     }
 
     private void ToggleTrack(TrackSnapshot track)

@@ -1,7 +1,7 @@
 <div class="mb-3 border p-3">
     <div class="mb-3 form-check form-switch">
-        <InputCheckbox id="@($"strip{TrackType}Tracks")" class="form-check-input" @bind-Value="Settings.Enabled" />
-        <label class="form-check-label" for="@($"strip{TrackType}Tracks")">Remove unwanted @TrackType.ToLower() tracks</label>
+        <InputCheckbox id="@($"strip{TrackTypeLabel}Tracks")" class="form-check-input" @bind-Value="Settings.Enabled" />
+        <label class="form-check-label" for="@($"strip{TrackTypeLabel}Tracks")">Remove unwanted @TrackTypeLabel.ToLower() tracks</label>
     </div>
 
     @if (Settings.Enabled)
@@ -9,55 +9,50 @@
         <div class="mb-3">
             <label class="form-label">Allowed @TrackType Languages</label>
             <LanguageSelector SelectedItems="Settings.AllowedLanguages" />
-            <small class="form-text text-muted">When there is more than 1 @TrackType.ToLower() language in a video file, only allowed @TrackType.ToLower() languages are kept.</small>
+            <small class="form-text text-muted">When there is more than 1 @TrackTypeLabel.ToLower() language in a video file, only allowed @TrackTypeLabel.ToLower() languages are kept.</small>
         </div>
 
         <div class="mb-3 form-check form-switch">
-            <InputCheckbox id="@($"keepOriginal{TrackType}")" class="form-check-input" @bind-Value="Settings.KeepOriginalLanguage" />
-            <label class="form-check-label" for="@($"keepOriginal{TrackType}")">Always keep original @TrackType.ToLower() language</label>
+            <InputCheckbox id="@($"keepOriginal{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.KeepOriginalLanguage" />
+            <label class="form-check-label" for="@($"keepOriginal{TrackTypeLabel}")">Always keep original @TrackTypeLabel.ToLower() language</label>
             <small class="form-text text-muted d-block">Will always keep the original movie language, even if the allowed list does not contain it. (Sync with Radarr/Sonarr is required!)</small>
         </div>
 
         <div class="mb-3 form-check form-switch">
-            <InputCheckbox id="@($"removeCommentary{TrackType}")" class="form-check-input" @bind-Value="Settings.RemoveCommentary" />
-            <label class="form-check-label" for="@($"removeCommentary{TrackType}")">Remove Commentary @TrackType</label>
-            <small class="form-text text-muted d-block">Will try to detect and remove extra @(TrackType.ToLower())s marked as commentary. (Even if the language is whitelisted)</small>
+            <InputCheckbox id="@($"removeCommentary{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.RemoveCommentary" />
+            <label class="form-check-label" for="@($"removeCommentary{TrackTypeLabel}")">Remove Commentary @TrackTypeLabel</label>
+            <small class="form-text text-muted d-block">Will try to detect and remove extra @(TrackTypeLabel.ToLower())s marked as commentary. (Even if the language is whitelisted)</small>
         </div>
 
         <div class="mb-3 form-check form-switch">
-            <InputCheckbox id="@($"removeImpaired{TrackType}")" class="form-check-input" @bind-Value="Settings.RemoveImpaired" />
-            <label class="form-check-label" for="@($"removeImpaired{TrackType}")">Remove (Hearing) Impaired @TrackType</label>
-            <small class="form-text text-muted d-block">Will try to detect and remove extra hearing / visual impaired @(TrackType.ToLower())s (Even if the language is whitelisted)</small>
+            <InputCheckbox id="@($"removeImpaired{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.RemoveImpaired" />
+            <label class="form-check-label" for="@($"removeImpaired{TrackTypeLabel}")">Remove (Hearing) Impaired @TrackTypeLabel</label>
+            <small class="form-text text-muted d-block">Will try to detect and remove extra hearing / visual impaired @(TrackTypeLabel.ToLower())s (Even if the language is whitelisted)</small>
         </div>
 
         <div class="mb-3 form-check form-switch">
-            <InputCheckbox id="@($"assumeUnd{TrackType}")" class="form-check-input" @bind-Value="Settings.AssumeUndeterminedIsOriginal" />
-            <label class="form-check-label" for="@($"assumeUnd{TrackType}")">Assume undetermined language is original language</label>
-            <small class="form-text text-muted d-block">When there is only a single @(TrackType.ToLower()) track tagged as "undetermined", assume it is the original language from Sonarr/Radarr.</small>
+            <InputCheckbox id="@($"assumeUnd{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.AssumeUndeterminedIsOriginal" />
+            <label class="form-check-label" for="@($"assumeUnd{TrackTypeLabel}")">Assume undetermined language is original language</label>
+            <small class="form-text text-muted d-block">When there is only a single @(TrackTypeLabel.ToLower()) track tagged as "undetermined", assume it is the original language from Sonarr/Radarr.</small>
         </div>
 
         <div class="mb-3 form-check form-switch">
-            <InputCheckbox id="@($"standardize{TrackType}")" class="form-check-input" @bind-Value="Settings.StandardizeTrackNames" @bind-Value:after="OnStandardizeToggled" />
-            <label class="form-check-label" for="@($"standardize{TrackType}")">Standardize @TrackType Track Names</label>
-            <small class="form-text text-muted d-block">Rename @(TrackType.ToLower()) tracks during conversion using a template.</small>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label" for="@($"defaultTrack{TrackType}")">Default @TrackType Track</label>
-            <InputSelect id="@($"defaultTrack{TrackType}")" class="form-select" @bind-Value="Settings.DefaultTrack">
-                <option value="@DefaultTrackRule.None">Don't change defaults</option>
-                <option value="@DefaultTrackRule.FirstAllowed">First allowed track</option>
-                <option value="@DefaultTrackRule.OriginalLanguage">Original language track</option>
-            </InputSelect>
-            <small class="form-text text-muted d-block">Controls which @(TrackType.ToLower()) track is marked as the default player selection.</small>
+            <InputCheckbox id="@($"standardize{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.StandardizeTrackNames" @bind-Value:after="OnStandardizeToggled" />
+            <label class="form-check-label" for="@($"standardize{TrackTypeLabel}")">Standardize @TrackTypeLabel Track Names</label>
+            <small class="form-text text-muted d-block">Rename @(TrackTypeLabel.ToLower()) tracks during conversion using a template.</small>
         </div>
 
         @if (Settings.StandardizeTrackNames)
         {
             <div class="mb-3 ms-4">
-                <InputText id="@($"trackNameTemplate{TrackType}")" class="form-control" @bind-Value="Settings.TrackNameTemplate" />
+                <InputText id="@($"trackNameTemplate{TrackTypeLabel}")" class="form-control" @bind-Value="Settings.TrackNameTemplate" />
                 <small class="form-text text-muted d-block">
-                    Placeholders: <code>{language}</code>, <code>{nativelanguage}</code>, <code>{codec}</code>, <code>{channels}</code>, <code>{trackname}</code>,
+                    Placeholders: <code>{language}</code>, <code>{nativelanguage}</code>, <code>{codec}</code>,
+                    @if (IsAudio)
+                    {
+                        <code>{channels}</code><text>,</text>
+                    }
+                    <code>{trackname}</code>,
                     <code>{hi}</code>, <code>{forced}</code>, <code>{commentary}</code>, <code>{visualimpaired}</code>, <code>{original}</code>, <code>{flags}</code>.
                     Leave empty to clear all track names.
                 </small>
@@ -65,7 +60,12 @@
                 {
                     <div class="mt-2 text-muted small">
                         <i class="bi bi-eye me-1"></i>Preview:
-                        <code>@GetPreview()</code>
+                        <div class="mt-1">
+                            @foreach (var track in GetPreviewTracks())
+                            {
+                                <div><code>@(track.ApplyTrackNameTemplate(Settings.TrackNameTemplate) ?? "(empty)")</code></div>
+                            }
+                        </div>
                     </div>
                 }
             </div>
@@ -78,17 +78,48 @@
     public TrackSettings Settings { get; set; } = default!;
 
     [Parameter, EditorRequired]
-    public string TrackType { get; set; } = default!;
+    public MediaTrackType TrackType { get; set; }
 
-    private string DefaultTemplate => TrackType == "Audio" ? "{language} {channels}" : "{language}";
+    private string TrackTypeLabel => TrackType == MediaTrackType.Audio ? "Audio" : "Subtitle";
+    private bool IsAudio => TrackType == MediaTrackType.Audio;
+    private string DefaultTemplate => IsAudio ? "{language} {channels}" : "{language}";
 
-    private TrackSnapshot PreviewTrack => TrackType == "Audio"
-        ? new TrackSnapshot { Type = MediaTrackType.Audio, LanguageName = "English", Codec = "AAC", AudioChannels = 6, TrackName = "Surround" }
-        : new TrackSnapshot { Type = MediaTrackType.Subtitles, LanguageName = "English", Codec = "SRT", TrackName = "Full", IsHearingImpaired = true };
+    private string PreviewLanguage =>
+        Settings.AllowedLanguages.Count > 0 ? Settings.AllowedLanguages[0].Name : "English";
 
-    private string GetPreview()
+    private string? SecondLanguage =>
+        Settings.AllowedLanguages.Count > 1 ? Settings.AllowedLanguages[1].Name : null;
+
+    private List<TrackSnapshot> GetPreviewTracks()
     {
-        return PreviewTrack.ApplyTrackNameTemplate(Settings.TrackNameTemplate) ?? "(empty)";
+        if (IsAudio)
+        {
+            var tracks = new List<TrackSnapshot>
+            {
+                new() { Type = MediaTrackType.Audio, LanguageName = PreviewLanguage, Codec = "TrueHD", AudioChannels = 8, IsOriginal = true },
+                new() { Type = MediaTrackType.Audio, LanguageName = PreviewLanguage, Codec = "E-AC-3", AudioChannels = 6 },
+                new() { Type = MediaTrackType.Audio, LanguageName = PreviewLanguage, Codec = "AAC", AudioChannels = 2, IsCommentary = true }
+            };
+            if (SecondLanguage != null)
+            {
+                tracks.Add(new TrackSnapshot { Type = MediaTrackType.Audio, LanguageName = SecondLanguage, Codec = "E-AC-3", AudioChannels = 6 });
+            }
+            return tracks;
+        }
+        else
+        {
+            var tracks = new List<TrackSnapshot>
+            {
+                new() { Type = MediaTrackType.Subtitles, LanguageName = PreviewLanguage, Codec = "SRT" },
+                new() { Type = MediaTrackType.Subtitles, LanguageName = PreviewLanguage, Codec = "SRT", IsHearingImpaired = true },
+                new() { Type = MediaTrackType.Subtitles, LanguageName = PreviewLanguage, Codec = "PGS", IsForced = true }
+            };
+            if (SecondLanguage != null)
+            {
+                tracks.Add(new TrackSnapshot { Type = MediaTrackType.Subtitles, LanguageName = SecondLanguage, Codec = "SRT" });
+            }
+            return tracks;
+        }
     }
 
     private void OnStandardizeToggled()

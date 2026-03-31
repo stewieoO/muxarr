@@ -310,16 +310,11 @@ public class MediaConverterService(
                 if (conversion.IsCustomConversion)
                 {
                     output.IsDefault = track.IsDefault;
+                    output.IsForced = track.IsForced;
                 }
             }
 
             trackOutputs.Add(output);
-        }
-
-        // Apply default track rules from profile.
-        if (!conversion.IsCustomConversion && profile != null)
-        {
-            MediaFileExtensions.ApplyDefaultTrackFlags(trackOutputs, conversion.AllowedTracks, profile, conversion.MediaFile.OriginalLanguage);
         }
 
         // No tracks to remove — check if metadata-only fix is needed.
