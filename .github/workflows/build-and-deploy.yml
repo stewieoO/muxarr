@@ -58,7 +58,7 @@ jobs:
       - name: Run Tests
         run: dotnet test --configuration Release
 
-  docker:
+  build:
     needs: test
     if: github.event_name == 'push' || github.event_name == 'release'
     strategy:
@@ -84,7 +84,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish
+      - name: Publish .NET app
         run: dotnet publish Muxarr.Web/Muxarr.Web.csproj -c Release -o Muxarr.Web/publish
 
       - name: Set up Docker Buildx
@@ -128,8 +128,8 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  merge:
-    needs: docker
+  manifest:
+    needs: build
     if: github.event_name == 'push' || github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
