@@ -1,4 +1,4 @@
-﻿# Runtime image only (no build tools)
+# Runtime-only image - binaries are pre-built by CI for each architecture
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
