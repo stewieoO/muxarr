@@ -170,7 +170,7 @@
                 "Would you like to scan the library now? This will apply the updated profile settings to your media files.",
                 "Scan Library?"))
         {
-            await MediaScanner.ScanAll(false);
+            _ = MediaScanner.ScanAll(false);
             ToastService.ShowInfo("Library scan started.");
         }
 
