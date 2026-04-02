@@ -2,18 +2,18 @@
 @using Muxarr.Core.Config
 
 <div class="border rounded p-4">
-    <div class="d-flex align-items-center mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-1 mb-3">
         <i class="bi @IconClass text-primary me-2"></i>
         <h5 class="mb-0">@Name</h5>
         @if (_isConnected != null)
         {
-            <span class="badge ms-2 @(_isConnected.Value ? "text-bg-success" : "text-bg-danger")">
+            <span class="badge @(_isConnected.Value ? "text-bg-success" : "text-bg-danger")">
                 <i class="bi @(_isConnected.Value ? "bi-check-circle" : "bi-x-circle") me-1"></i>@(_isConnected.Value ? "Connected" : "Not Connected")
             </span>
         }
-        @if (ShowWebhook && _isWebhookConnected != null)
+        @if (_isWebhookConnected != null)
         {
-            <span class="badge ms-2 @(_isWebhookConnected.Value ? "text-bg-success" : "text-bg-secondary")">
+            <span class="badge @(_isWebhookConnected.Value ? "text-bg-success" : "text-bg-secondary")">
                 <i class="bi @(_isWebhookConnected.Value ? "bi-link-45deg" : "bi-link") me-1"></i>@(_isWebhookConnected.Value ? "Webhook Active" : "No Webhook")
             </span>
         }
@@ -42,17 +42,14 @@
             <i class="bi bi-plug me-1"></i>Test Connection
         </button>
 
-        @if (ShowWebhook)
+        <button type="button" class="btn btn-outline-success btn-sm" @onclick="ConnectWebhook" disabled="@_isBusy">
+            <i class="bi bi-link-45deg me-1"></i>Connect Webhook
+        </button>
+        @if (_isWebhookConnected == true)
         {
-            <button type="button" class="btn btn-outline-success btn-sm" @onclick="ConnectWebhook" disabled="@_isBusy">
-                <i class="bi bi-link-45deg me-1"></i>Connect Webhook
+            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="DisconnectWebhook" disabled="@_isBusy">
+                <i class="bi bi-x-circle me-1"></i>Disconnect
             </button>
-            @if (_isWebhookConnected == true)
-            {
-                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="DisconnectWebhook" disabled="@_isBusy">
-                    <i class="bi bi-x-circle me-1"></i>Disconnect
-                </button>
-            }
         }
     </div>
 </div>
@@ -68,14 +65,12 @@
     [Parameter, EditorRequired] public required ArrConfig Config { get; set; }
     [Parameter, EditorRequired] public required string Name { get; set; }
 
-    // Webhook parameters (optional)
-    [Parameter] public bool ShowWebhook { get; set; }
     [Parameter] public string ConfigKey { get; set; } = "";
     [Parameter] public Func<string>? GetWebhookUrl { get; set; }
+    [Parameter] public Func<Task>? AutoSave { get; set; }
 
     [Inject] public required ArrApiClient ArrApi { get; set; }
     [Inject] public required IToastService ToastService { get; set; }
-    [Inject] public required IModalService ModalService { get; set; }
     [Inject] public required IDbContextFactory<AppDbContext> ContextFactory { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -89,7 +84,7 @@
         {
             _isConnected = await ArrApi.CanConnect(Config);
 
-            if (_isConnected == true && ShowWebhook)
+            if (_isConnected == true)
             {
                 var notification = await ArrApi.FindMuxarrNotification(Config);
                 _isWebhookConnected = notification != null;
@@ -115,6 +110,11 @@
 
         try
         {
+            if (AutoSave != null)
+            {
+                await AutoSave();
+            }
+
             Config.Url = SanitizeUrl(Config.Url);
             _isConnected = await ArrApi.CanConnect(Config);
 
@@ -122,22 +122,8 @@
             {
                 ToastService.ShowSuccess($"{Name} connection successful!");
 
-                if (ShowWebhook)
-                {
-                    var notification = await ArrApi.FindMuxarrNotification(Config);
-                    _isWebhookConnected = notification != null;
-
-                    if (!_isWebhookConnected.Value)
-                    {
-                        var connect = await ModalService.ShowConfirm(
-                            $"{Name} is reachable. Would you like to connect the webhook now?",
-                            "Connect Webhook?");
-                        if (connect)
-                        {
-                            await ConnectWebhook();
-                        }
-                    }
-                }
+                var notification = await ArrApi.FindMuxarrNotification(Config);
+                _isWebhookConnected = notification != null;
             }
             else
             {
@@ -157,18 +143,23 @@
 
     private async Task ConnectWebhook()
     {
-        var webhookUrl = GetWebhookUrl?.Invoke() ?? "";
-        if (string.IsNullOrWhiteSpace(webhookUrl) || webhookUrl.Contains("<muxarr-host>"))
-        {
-            ToastService.ShowWarning("Please set the Muxarr URL first and save settings.");
-            return;
-        }
-
         _isBusy = true;
         StateHasChanged();
 
         try
         {
+            if (AutoSave != null)
+            {
+                await AutoSave();
+            }
+
+            var webhookUrl = GetWebhookUrl?.Invoke() ?? "";
+            if (string.IsNullOrWhiteSpace(webhookUrl) || webhookUrl.Contains("<muxarr-host>"))
+            {
+                ToastService.ShowWarning("Please set the Muxarr URL first.");
+                return;
+            }
+
             await using var context = await ContextFactory.CreateDbContextAsync();
             var arrConfig = context.Configs.GetOrDefault<ArrConfig>(ConfigKey);
 
@@ -179,16 +170,9 @@
             }
 
             var existing = await ArrApi.FindMuxarrNotification(arrConfig);
-
-            bool success;
-            if (existing != null)
-            {
-                success = await ArrApi.UpdateWebhookNotification(arrConfig, existing, webhookUrl);
-            }
-            else
-            {
-                success = await ArrApi.CreateWebhookNotification(arrConfig, webhookUrl);
-            }
+            var success = existing != null
+                ? await ArrApi.UpdateWebhookNotification(arrConfig, existing, webhookUrl)
+                : await ArrApi.CreateWebhookNotification(arrConfig, webhookUrl);
 
             if (success)
             {

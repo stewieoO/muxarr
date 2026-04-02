@@ -10,9 +10,8 @@
     @* Step indicator *@
     <div class="d-flex justify-content-center gap-2 mb-4">
         <span class="badge @(_step == 1 ? "text-bg-primary" : "text-bg-secondary")">1. Security</span>
-        <span class="badge @(_step == 2 ? "text-bg-primary" : "text-bg-secondary")">2. Integration</span>
-        <span class="badge @(_step == 3 ? "text-bg-primary" : "text-bg-secondary")">3. Webhooks</span>
-        <span class="badge @(_step == 4 ? "text-bg-primary" : "text-bg-secondary")">4. Profiles</span>
+        <span class="badge @(_step == 2 ? "text-bg-primary" : "text-bg-secondary")">2. Connections</span>
+        <span class="badge @(_step == 3 ? "text-bg-primary" : "text-bg-secondary")">3. Profiles</span>
     </div>
 
     @if (!string.IsNullOrEmpty(_error))
@@ -60,11 +59,23 @@
         </p>
 
         <EditForm Model="_arrConfigs" FormName="arr-setup">
-            <div class="mb-4">
-                <ArrServiceCard Name="Sonarr" Config="_sonarrConfig" />
+            <div class="border rounded p-4 mb-4">
+                <h5 class="mb-3"><i class="bi bi-link-45deg me-2"></i>Muxarr URL</h5>
+                <input type="text" class="form-control" @bind="_muxarrUrl" placeholder="http://muxarr:8183" />
+                <small class="form-text text-muted">
+                    The URL that Sonarr/Radarr can reach Muxarr at. Example: <code>http://muxarr:8183</code> (Docker) or <code>http://x.x.x.x:8183</code> (LAN IP)
+                </small>
             </div>
-            <div class="mb-4">
-                <ArrServiceCard Name="Radarr" Config="_radarrConfig" />
+
+            <div class="d-flex flex-column gap-4 mb-4">
+                <ArrServiceCard Name="Sonarr" Config="_sonarrConfig"
+                                ConfigKey="@ArrConfig.SonarrKey"
+                                GetWebhookUrl="@GetWebhookUrl"
+                                AutoSave="@PersistConnections" />
+                <ArrServiceCard Name="Radarr" Config="_radarrConfig"
+                                ConfigKey="@ArrConfig.RadarrKey"
+                                GetWebhookUrl="@GetWebhookUrl"
+                                AutoSave="@PersistConnections" />
             </div>
 
             <div class="d-flex justify-content-between">
@@ -75,7 +86,7 @@
                     <button type="button" class="btn btn-outline-secondary" @onclick="() => GoToStep(3)">
                         Skip
                     </button>
-                    <button type="button" class="btn btn-primary" @onclick="SaveArrAndContinue">
+                    <button type="button" class="btn btn-primary" @onclick="SaveAndContinue">
                         Next <i class="bi bi-arrow-right ms-1"></i>
                     </button>
                 </div>
@@ -83,41 +94,6 @@
         </EditForm>
     }
     else if (_step == 3)
-    {
-        <h4 class="mb-2">Webhook Configuration</h4>
-        <p class="text-muted small mb-4">
-            For Muxarr to automatically process files, Sonarr and Radarr need to know how to reach it.
-            Enter the URL that your *Arr instances can use to connect to this Muxarr instance.
-            This is typically the container name or IP address on your Docker network.
-        </p>
-
-        <div class="mb-4">
-            <label class="form-label">Muxarr URL</label>
-            <input type="text" class="form-control" @bind="_muxarrUrl" placeholder="http://muxarr:8183" />
-            <small class="form-text text-muted">
-                Example: <code>http://muxarr:8183</code> (Docker) or <code>http://x.x.x.x:8183</code> (LAN IP)
-            </small>
-        </div>
-
-        <div class="d-flex justify-content-between">
-            <button class="btn btn-outline-secondary" @onclick="() => GoToStep(2)">
-                <i class="bi bi-arrow-left me-1"></i> Back
-            </button>
-            <div class="d-flex gap-2">
-                <button class="btn btn-outline-secondary" @onclick="() => GoToStep(4)">
-                    Skip webhooks
-                </button>
-                <button class="btn btn-primary" @onclick="SaveWebhooksAndContinue" disabled="@_isFinishing">
-                    @if (_isFinishing)
-                    {
-                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                    }
-                    Next <i class="bi bi-arrow-right ms-1"></i>
-                </button>
-            </div>
-        </div>
-    }
-    else if (_step == 4)
     {
         <h4 class="mb-2">You're all set!</h4>
         <p class="text-muted small mb-3">
@@ -135,7 +111,10 @@
             library and start managing tracks automatically.
         </p>
 
-        <div class="d-flex justify-content-end">
+        <div class="d-flex justify-content-between">
+            <button class="btn btn-outline-secondary" @onclick="() => GoToStep(2)">
+                <i class="bi bi-arrow-left me-1"></i> Back
+            </button>
             <button class="btn btn-primary" @onclick="CompleteSetup">
                 Create Profile <i class="bi bi-arrow-right ms-1"></i>
             </button>
@@ -147,7 +126,6 @@
     [Inject] public required IDbContextFactory<AppDbContext> ContextFactory { get; set; }
     [Inject] public required NavigationManager NavigationManager { get; set; }
     [Inject] public required IToastService ToastService { get; set; }
-    [Inject] public required ArrApiClient ArrApi { get; set; }
 
     private static readonly PasswordHasher<string> Hasher = new();
 
@@ -156,11 +134,25 @@
     private string _password = "";
     private string _confirmPassword = "";
     private string _muxarrUrl = "";
+    private string _webhookApiKey = "";
     private string? _error;
-    private bool _isFinishing;
     private ArrConfigs _arrConfigs = new();
     private ArrConfig _sonarrConfig => _arrConfigs.Sonarr;
     private ArrConfig _radarrConfig => _arrConfigs.Radarr;
+
+    private string GetWebhookUrl()
+    {
+        if (string.IsNullOrWhiteSpace(_muxarrUrl))
+        {
+            return "http://<muxarr-host>:8183/api/webhook";
+        }
+        var url = $"{_muxarrUrl.TrimEnd('/')}/api/webhook";
+        if (!string.IsNullOrEmpty(_webhookApiKey))
+        {
+            url += $"?apikey={_webhookApiKey}";
+        }
+        return url;
+    }
 
     private bool HasSonarr => !string.IsNullOrWhiteSpace(_sonarrConfig.Url) && !string.IsNullOrWhiteSpace(_sonarrConfig.ApiKey);
     private bool HasRadarr => !string.IsNullOrWhiteSpace(_radarrConfig.Url) && !string.IsNullOrWhiteSpace(_radarrConfig.ApiKey);
@@ -171,7 +163,14 @@
         if (await context.Configs.GetAsync<SetupConfig>() != null)
         {
             NavigationManager.NavigateTo("/");
+            return;
         }
+
+        _arrConfigs.Sonarr = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.SonarrKey);
+        _arrConfigs.Radarr = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.RadarrKey);
+        var webhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
+        _muxarrUrl = webhookConfig.MuxarrUrl ?? "";
+        _webhookApiKey = webhookConfig.ApiKey ?? "";
     }
 
     private void GoToStep(int step)
@@ -218,16 +217,14 @@
         GoToStep(2);
     }
 
-    private async Task SaveArrAndContinue()
+    private async Task SaveAndContinue()
     {
-        _error = null;
+        await PersistConnections();
+        GoToStep(3);
+    }
 
-        if (!HasSonarr && !HasRadarr)
-        {
-            GoToStep(3);
-            return;
-        }
-
+    private async Task PersistConnections()
+    {
         await using var context = await ContextFactory.CreateDbContextAsync();
 
         if (HasSonarr)
@@ -242,56 +239,18 @@
             context.Configs.Set(_radarrConfig, ArrConfig.RadarrKey);
         }
 
+        var webhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
+        webhookConfig.MuxarrUrl = ArrServiceCard.SanitizeUrl(_muxarrUrl);
+
+        if (string.IsNullOrEmpty(webhookConfig.ApiKey))
+        {
+            webhookConfig.ApiKey = Guid.NewGuid().ToString("N");
+        }
+
+        _webhookApiKey = webhookConfig.ApiKey;
+        context.Configs.Set(webhookConfig);
+
         await context.SaveChangesAsync();
-        GoToStep(3);
-    }
-
-    private async Task SaveWebhooksAndContinue()
-    {
-        _error = null;
-
-        if (string.IsNullOrWhiteSpace(_muxarrUrl))
-        {
-            _error = "Please enter the Muxarr URL, or click Skip webhooks.";
-            return;
-        }
-
-        _isFinishing = true;
-        StateHasChanged();
-
-        try
-        {
-            await using var context = await ContextFactory.CreateDbContextAsync();
-
-            var webhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
-            webhookConfig.MuxarrUrl = ArrServiceCard.SanitizeUrl(_muxarrUrl);
-
-            if (string.IsNullOrEmpty(webhookConfig.ApiKey))
-            {
-                webhookConfig.ApiKey = Guid.NewGuid().ToString("N");
-            }
-
-            context.Configs.Set(webhookConfig);
-            await context.SaveChangesAsync();
-
-            var webhookUrl = $"{webhookConfig.MuxarrUrl}/api/webhook?apikey={webhookConfig.ApiKey}";
-
-            if (HasSonarr)
-            {
-                await RegisterWebhook(_sonarrConfig, "Sonarr", webhookUrl);
-            }
-
-            if (HasRadarr)
-            {
-                await RegisterWebhook(_radarrConfig, "Radarr", webhookUrl);
-            }
-
-            GoToStep(4);
-        }
-        finally
-        {
-            _isFinishing = false;
-        }
     }
 
     private async Task CompleteSetup()
@@ -300,29 +259,5 @@
         context.Configs.Set(new SetupConfig { CompletedAt = DateTime.UtcNow });
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo("/settings/profile/0");
-    }
-
-    private async Task RegisterWebhook(ArrConfig arrConfig, string name, string webhookUrl)
-    {
-        try
-        {
-            var existing = await ArrApi.FindMuxarrNotification(arrConfig);
-            var success = existing != null
-                ? await ArrApi.UpdateWebhookNotification(arrConfig, existing, webhookUrl)
-                : await ArrApi.CreateWebhookNotification(arrConfig, webhookUrl);
-
-            if (success)
-            {
-                ToastService.ShowSuccess($"Webhook registered in {name}!");
-            }
-            else
-            {
-                ToastService.ShowWarning($"Could not register webhook in {name}. You can set this up later in Settings.");
-            }
-        }
-        catch
-        {
-            ToastService.ShowWarning($"Could not reach {name} for webhook registration. You can set this up later in Settings.");
-        }
     }
 }

@@ -19,13 +19,15 @@
     <div class="row g-4 mb-4">
         <div class="col-lg-6">
             <ArrServiceCard Name="Sonarr" Config="@ArrConfigs.Sonarr"
-                            ShowWebhook="true" ConfigKey="@ArrConfig.SonarrKey"
-                            GetWebhookUrl="@(() => WebhookUrl)" />
+                            ConfigKey="@ArrConfig.SonarrKey"
+                            GetWebhookUrl="@(() => WebhookUrl)"
+                            AutoSave="@SaveSettingsSilent" />
         </div>
         <div class="col-lg-6">
             <ArrServiceCard Name="Radarr" Config="@ArrConfigs.Radarr"
-                            ShowWebhook="true" ConfigKey="@ArrConfig.RadarrKey"
-                            GetWebhookUrl="@(() => WebhookUrl)" />
+                            ConfigKey="@ArrConfig.RadarrKey"
+                            GetWebhookUrl="@(() => WebhookUrl)"
+                            AutoSave="@SaveSettingsSilent" />
         </div>
     </div>
 
@@ -86,7 +88,11 @@
         WebhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
     }
 
-    private async Task HandleSubmit()
+    private Task HandleSubmit() => SaveSettings(showToast: true);
+
+    private Task SaveSettingsSilent() => SaveSettings(showToast: false);
+
+    private async Task SaveSettings(bool showToast)
     {
         try
         {
@@ -101,7 +107,10 @@
             context.Configs.Set(WebhookConfig);
             await context.SaveChangesAsync();
 
-            ToastService.ShowSuccess("Connection settings saved.");
+            if (showToast)
+            {
+                ToastService.ShowSuccess("Connection settings saved.");
+            }
         }
         catch (Exception ex)
         {

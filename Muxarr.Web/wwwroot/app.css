@@ -339,14 +339,14 @@
     bottom: 0;
     margin-top: 2rem;
     padding: 0.75rem 0;
-    background: color-mix(in srgb, var(--bs-body-bg) 60%, transparent);
-    backdrop-filter: blur(6px);
+    background: color-mix(in srgb, var(--bs-body-bg) 50%, transparent);
+    backdrop-filter: blur(4px);
     border-top: 1px solid var(--bs-border-color);
     z-index: 10;
 }
 
 [data-bs-theme="dark"] .mux-sticky-bar {
-    background: color-mix(in srgb, #0d0d1a 60%, transparent);
+    background: color-mix(in srgb, #0d0d1a 50%, transparent);
     border-top-color: var(--mux-border);
 }
 
