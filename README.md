@@ -9,7 +9,7 @@
 
 Muxarr cleans up your media files by removing redundant audio and subtitle tracks and standardizing track metadata. It uses **mkvmerge** to remux files - not re-encode them. Remuxing copies streams into a new container without decoding, so there is **zero quality loss** and it runs fast even on low-end hardware like a NAS or Raspberry Pi.
 
-Integrates with your existing media management services for original language detection and automatic processing via webhooks.
+Integrates with your *arr stack for original language detection and automatic processing via webhooks.
 
 > **Why remux instead of re-encode?** Re-encoding (like H.264 to H.265) is lossy, CPU-intensive, and takes hours per file. Remuxing just repackages the container - it strips unwanted tracks and fixes metadata without touching the video or audio data. A 4GB file takes about a minute, not hours.
 
@@ -35,7 +35,7 @@ services:
 ## Features
 
 - **Lossless track removal** - strip redundant audio tracks (commentary, foreign dubs) and subtitles (SDH, foreign). A typical 4GB file processes in about a minute depending on disk speed, saving up to 10% in file size.
-- **Original language detection** - integrates with your media manager so foreign films and shows always keep the correct audio track
+- **Original language detection** - integrates with your *arr stack so foreign films and shows always keep the correct audio track
 - **Automatic processing** - webhook support to process new imports as they arrive
 - **Per-directory profiles** - different language and track rules for different collections (e.g. anime vs western media)
 - **Smart metadata fixes** - cleans up encoder tags and codec dumps from track names. Uses mkvpropedit for metadata-only changes (instant, no remux needed)
@@ -140,7 +140,7 @@ docker run -d \
 
 1. Open `http://your-ip:8183`
 2. Create a profile with your media directories and language rules
-3. Optionally connect your media manager for original language detection and webhook automation
+3. Optionally connect to your *arr stack for original language detection and webhook automation
 4. Scan your library, preview the changes, and queue files for processing
 
 ## Built With

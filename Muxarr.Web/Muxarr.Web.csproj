@@ -21,6 +21,7 @@
       <_ContentIncludedByDefault Remove="Components\Pages\Profiles\Index.razor" />
       <_ContentIncludedByDefault Remove="Components\Shared\Selectable\SelectAllCheckbox.razor" />
       <_ContentIncludedByDefault Remove="Components\Shared\Selectable\SelectionCheckbox.razor" />
+      <_ContentIncludedByDefault Remove="publish\wwwroot\lib\bootstrap-icons\font\bootstrap-icons.json" />
     </ItemGroup>
 
     <ItemGroup>

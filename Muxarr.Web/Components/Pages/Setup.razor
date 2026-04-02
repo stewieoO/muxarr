@@ -61,10 +61,10 @@
 
         <EditForm Model="_arrConfigs" FormName="arr-setup">
             <div class="mb-4">
-                <ArrConfigEditor Name="Sonarr" Config="_sonarrConfig" />
+                <ArrServiceCard Name="Sonarr" Config="_sonarrConfig" />
             </div>
             <div class="mb-4">
-                <ArrConfigEditor Name="Radarr" Config="_radarrConfig" />
+                <ArrServiceCard Name="Radarr" Config="_radarrConfig" />
             </div>
 
             <div class="d-flex justify-content-between">
@@ -232,13 +232,13 @@
 
         if (HasSonarr)
         {
-            _sonarrConfig.Url = ArrConfigEditor.SanitizeUrl(_sonarrConfig.Url);
+            _sonarrConfig.Url = ArrServiceCard.SanitizeUrl(_sonarrConfig.Url);
             context.Configs.Set(_sonarrConfig, ArrConfig.SonarrKey);
         }
 
         if (HasRadarr)
         {
-            _radarrConfig.Url = ArrConfigEditor.SanitizeUrl(_radarrConfig.Url);
+            _radarrConfig.Url = ArrServiceCard.SanitizeUrl(_radarrConfig.Url);
             context.Configs.Set(_radarrConfig, ArrConfig.RadarrKey);
         }
 
@@ -264,7 +264,7 @@
             await using var context = await ContextFactory.CreateDbContextAsync();
 
             var webhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
-            webhookConfig.MuxarrUrl = ArrConfigEditor.SanitizeUrl(_muxarrUrl);
+            webhookConfig.MuxarrUrl = ArrServiceCard.SanitizeUrl(_muxarrUrl);
 
             if (string.IsNullOrEmpty(webhookConfig.ApiKey))
             {

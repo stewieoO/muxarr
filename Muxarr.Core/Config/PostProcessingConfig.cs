@@ -12,7 +12,10 @@ public class PostProcessingConfig
 
         return Command
             .Replace("{{file}}", filePath)
+            .Replace("{file}", filePath)
             .Replace("{{filename}}", filename)
-            .Replace("{{directory}}", directory);
+            .Replace("{filename}", filename)
+            .Replace("{{directory}}", directory)
+            .Replace("{directory}", directory);
     }
 }

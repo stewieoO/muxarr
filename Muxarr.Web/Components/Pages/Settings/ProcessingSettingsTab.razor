@@ -1,0 +1,105 @@
+@using Muxarr.Core.Config
+
+<p class="text-muted">Configure processing behavior and automation after conversions.</p>
+
+<EditForm Model="WebhookConfig" OnValidSubmit="HandleSubmit">
+    <div class="border rounded p-4 mb-4">
+        <h5 class="mb-3"><i class="bi bi-arrow-repeat me-2"></i>Webhook Processing</h5>
+        <p class="text-muted small mb-3">Configure how and when files are processed after they arrive via webhook. Webhooks must be connected in the Connections tab first.</p>
+
+        <div class="mb-3 form-check form-switch">
+            <InputCheckbox id="proc-autoqueue" class="form-check-input" @bind-Value="WebhookConfig.AutoQueue" />
+            <label for="proc-autoqueue" class="form-check-label">Auto-queue files for conversion</label>
+            <br />
+            <small class="form-text text-muted">When disabled, files are only scanned but not automatically queued.</small>
+        </div>
+
+        <div class="mb-3">
+            <label for="proc-delay" class="form-label">Processing delay (seconds)</label>
+            <InputNumber id="proc-delay" class="form-control" style="max-width: 200px;" @bind-Value="WebhookConfig.DelaySeconds" />
+            <small class="form-text text-muted">
+                Wait before processing to avoid file locks with other services (Bazarr, etc.)
+            </small>
+        </div>
+    </div>
+
+    <div class="border rounded p-4 mb-4">
+        <h5 class="mb-3"><i class="bi bi-terminal me-2"></i>Post-Processing</h5>
+        <p class="text-muted small mb-3">Run a custom command after each successful conversion. Useful for refreshing media servers, cleaning subtitles, or other automation.</p>
+
+        <div class="mb-3 form-check form-switch">
+            <InputCheckbox id="pp-enabled" class="form-check-input" @bind-Value="PostProcessingConfig.Enabled" />
+            <label for="pp-enabled" class="form-check-label">Enable post-processing</label>
+        </div>
+
+        <div class="mb-3">
+            <label for="pp-command" class="form-label">Command</label>
+            <InputTextArea id="pp-command" class="form-control font-monospace" rows="3" @bind-Value="PostProcessingConfig.Command" />
+            <small class="form-text text-muted">The command to execute after a successful conversion.</small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Available variables</label>
+            <table class="table table-sm table-bordered">
+                <thead>
+                <tr>
+                    <th>Variable</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr><td><code>{file}</code></td><td>Full path of the media file</td></tr>
+                <tr><td><code>{filename}</code></td><td>Filename without path or extension</td></tr>
+                <tr><td><code>{directory}</code></td><td>Parent directory of the media file</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(PostProcessingConfig.Command))
+        {
+            <div class="mb-3">
+                <label class="form-label text-muted">Preview</label>
+                <div class="bg-dark text-light p-2 rounded font-monospace small">
+                    @PostProcessingConfig.ResolveCommand("/media/movies/Example Movie (2024)/Example.Movie.2024.1080p.mkv")
+                </div>
+            </div>
+        }
+    </div>
+
+    <StickyBar>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-2"></i>Save Settings
+        </button>
+    </StickyBar>
+</EditForm>
+
+@code {
+    [Inject] public required IDbContextFactory<AppDbContext> ContextFactory { get; set; }
+    [Inject] public required IToastService ToastService { get; set; }
+
+    private WebhookConfig WebhookConfig { get; set; } = new();
+    private PostProcessingConfig PostProcessingConfig { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        WebhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
+        PostProcessingConfig = context.Configs.GetOrDefault<PostProcessingConfig>();
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+            context.Configs.Set(WebhookConfig);
+            context.Configs.Set(PostProcessingConfig);
+            await context.SaveChangesAsync();
+            ToastService.ShowSuccess("Processing settings saved.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to save settings: {ex.Message}");
+        }
+    }
+}

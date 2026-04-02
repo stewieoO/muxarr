@@ -1,0 +1,111 @@
+@using Muxarr.Core.Api
+@using Muxarr.Core.Config
+
+<p class="text-muted">Connect Muxarr to Sonarr and Radarr for original language detection and automatic file processing.</p>
+
+<EditForm Model="ArrConfigs" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+
+    <div class="border rounded p-4 mb-4">
+        <h5 class="mb-3"><i class="bi bi-link-45deg me-2"></i>Muxarr URL</h5>
+        <div class="mb-0">
+            <InputText class="form-control" @bind-Value="WebhookConfig.MuxarrUrl" />
+            <small class="form-text text-muted">
+                The URL that Sonarr/Radarr can reach Muxarr at. Example: <code>http://muxarr:8183</code>
+            </small>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <ArrServiceCard Name="Sonarr" Config="@ArrConfigs.Sonarr"
+                            ShowWebhook="true" ConfigKey="@ArrConfig.SonarrKey"
+                            GetWebhookUrl="@(() => WebhookUrl)" />
+        </div>
+        <div class="col-lg-6">
+            <ArrServiceCard Name="Radarr" Config="@ArrConfigs.Radarr"
+                            ShowWebhook="true" ConfigKey="@ArrConfig.RadarrKey"
+                            GetWebhookUrl="@(() => WebhookUrl)" />
+        </div>
+    </div>
+
+    <div class="border rounded p-4 mb-4">
+        <h5 class="mb-3"><i class="bi bi-info-circle me-2"></i>Manual Webhook Setup</h5>
+        <p class="text-muted mb-2">If you prefer to configure webhooks manually in Sonarr/Radarr:</p>
+        <ol class="text-muted">
+            <li>Go to Settings &gt; Connect &gt; Add &gt; Webhook</li>
+            <li>Set the URL to: <code>@WebhookUrl</code></li>
+            <li>Set Method to <strong>POST</strong></li>
+            <li>Enable <strong>On Import</strong> and <strong>On Rename</strong></li>
+        </ol>
+        @if (!string.IsNullOrEmpty(WebhookConfig.ApiKey))
+        {
+            <p class="text-muted small"><i class="bi bi-shield-lock me-1"></i>The API key is included in the URL above as a query parameter.</p>
+        }
+    </div>
+
+    <StickyBar>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-2"></i>Save Settings
+        </button>
+    </StickyBar>
+</EditForm>
+
+@code {
+    [Inject] public required IDbContextFactory<AppDbContext> ContextFactory { get; set; }
+    [Inject] public required IToastService ToastService { get; set; }
+
+    private ArrConfigs ArrConfigs { get; set; } = new();
+    private WebhookConfig WebhookConfig { get; set; } = new();
+
+    private string WebhookUrl
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(WebhookConfig.MuxarrUrl))
+            {
+                return "http://<muxarr-host>:8183/api/webhook";
+            }
+
+            var url = $"{WebhookConfig.MuxarrUrl.TrimEnd('/')}/api/webhook";
+            if (!string.IsNullOrEmpty(WebhookConfig.ApiKey))
+            {
+                url += $"?apikey={WebhookConfig.ApiKey}";
+            }
+
+            return url;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync();
+
+        ArrConfigs.Sonarr = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.SonarrKey);
+        ArrConfigs.Radarr = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.RadarrKey);
+        WebhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+
+            ArrConfigs.Sonarr.Url = ArrServiceCard.SanitizeUrl(ArrConfigs.Sonarr.Url);
+            ArrConfigs.Radarr.Url = ArrServiceCard.SanitizeUrl(ArrConfigs.Radarr.Url);
+            WebhookConfig.MuxarrUrl = WebhookConfig.MuxarrUrl.Trim().TrimEnd('/');
+
+            context.Configs.Set(ArrConfigs.Sonarr, ArrConfig.SonarrKey);
+            context.Configs.Set(ArrConfigs.Radarr, ArrConfig.RadarrKey);
+            context.Configs.Set(WebhookConfig);
+            await context.SaveChangesAsync();
+
+            ToastService.ShowSuccess("Connection settings saved.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to save settings: {ex.Message}");
+        }
+    }
+}

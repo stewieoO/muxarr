@@ -1,24 +1,25 @@
 @using Microsoft.AspNetCore.Identity
 @using Muxarr.Core.Config
 
-<p class="text-muted">Configure authentication. When a username and password are set, login is required to access the
-    application. Leave empty to allow open access.</p>
+<p class="text-muted">Configure authentication and API access.</p>
 
-@if (IsConfigured)
-{
-    <div class="alert alert-info">
-        Authentication is enabled for user <strong>@CurrentUsername</strong>.
-    </div>
-}
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-person-lock me-2"></i>Login</h5>
+                <p class="text-muted small">When a username and password are set, login is required to access the web UI. Leave empty for open access.</p>
 
-<EditForm Model="Model" OnValidSubmit="HandleSubmit">
-    <DataAnnotationsValidator />
+                @if (IsConfigured)
+                {
+                    <div class="alert alert-info py-2 small mb-3">
+                        Authentication is enabled for user <strong>@CurrentUsername</strong>.
+                    </div>
+                }
 
-    <div class="row g-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Credentials</h5>
+                <EditForm Model="Model" OnValidSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+
                     <div class="mb-3">
                         <label class="form-label">Username</label>
                         <InputText class="form-control" @bind-Value="Model.Username" />
@@ -31,35 +32,55 @@
                         <label class="form-label">Confirm Password</label>
                         <InputText type="password" class="form-control" @bind-Value="Model.ConfirmPassword" />
                     </div>
-                </div>
+
+                    <ValidationSummary />
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-save me-1"></i>@(IsConfigured ? "Update" : "Enable")
+                        </button>
+                        @if (IsConfigured)
+                        {
+                            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="HandleDisable">
+                                <i class="bi bi-shield-x me-1"></i>Disable
+                            </button>
+                        }
+                    </div>
+                </EditForm>
             </div>
         </div>
     </div>
 
-    <ValidationSummary />
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-key me-2"></i>API Key</h5>
+                <p class="text-muted small">Used to authenticate API and webhook requests. Pass via <code>X-Api-Key</code> header or <code>?apikey=</code> query parameter.</p>
 
-    <StickyBar>
-        <button type="submit" class="btn btn-primary">
-            <i class="bi bi-save me-2"></i>@(IsConfigured ? "Update" : "Enable") Authentication
-        </button>
-        @if (IsConfigured)
-        {
-            <button type="button" class="btn btn-outline-danger" @onclick="HandleDisable">
-                <i class="bi bi-shield-x me-2"></i>Disable Authentication
-            </button>
-        }
-    </StickyBar>
-</EditForm>
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="@_apiKey" readonly />
+                        <button type="button" class="btn btn-outline-secondary" @onclick="RegenerateApiKey" title="Regenerate API key">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
     [Inject] public required IDbContextFactory<AppDbContext> ContextFactory { get; set; }
     [Inject] public required IToastService ToastService { get; set; }
+    [Inject] public required IModalService ModalService { get; set; }
 
     private static readonly PasswordHasher<string> Hasher = new();
 
     private AuthFormModel Model { get; set; } = new();
     private bool IsConfigured { get; set; }
     private string CurrentUsername { get; set; } = string.Empty;
+    private string _apiKey = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,6 +94,9 @@
         IsConfigured = config != null;
         CurrentUsername = config?.Username ?? string.Empty;
         Model.Username = CurrentUsername;
+
+        var webhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
+        _apiKey = webhookConfig.ApiKey;
     }
 
     private async Task HandleSubmit()
@@ -134,6 +158,28 @@
         {
             ToastService.ShowError($"Failed to disable: {ex.Message}");
         }
+    }
+
+    private async Task RegenerateApiKey()
+    {
+        var confirmed = await ModalService.ShowConfirm(
+            "Regenerating the API key will invalidate all existing connections, " +
+            "including *Arr webhooks and any external integrations (e.g. Homepage).",
+            "Regenerate API Key?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        _apiKey = Guid.NewGuid().ToString("N");
+
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        var config = context.Configs.GetOrDefault<WebhookConfig>();
+        config.ApiKey = _apiKey;
+        context.Configs.Set(config);
+        await context.SaveChangesAsync();
+
+        ToastService.ShowInfo("New API key generated. Reconnect your *Arr instances and external integrations.");
     }
 
     private class AuthFormModel

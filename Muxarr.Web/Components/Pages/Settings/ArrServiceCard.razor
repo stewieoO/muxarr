@@ -1,0 +1,256 @@
+@using Muxarr.Core.Api
+@using Muxarr.Core.Config
+
+<div class="border rounded p-4">
+    <div class="d-flex align-items-center mb-3">
+        <i class="bi @IconClass text-primary me-2"></i>
+        <h5 class="mb-0">@Name</h5>
+        @if (_isConnected != null)
+        {
+            <span class="badge ms-2 @(_isConnected.Value ? "text-bg-success" : "text-bg-danger")">
+                <i class="bi @(_isConnected.Value ? "bi-check-circle" : "bi-x-circle") me-1"></i>@(_isConnected.Value ? "Connected" : "Not Connected")
+            </span>
+        }
+        @if (ShowWebhook && _isWebhookConnected != null)
+        {
+            <span class="badge ms-2 @(_isWebhookConnected.Value ? "text-bg-success" : "text-bg-secondary")">
+                <i class="bi @(_isWebhookConnected.Value ? "bi-link-45deg" : "bi-link") me-1"></i>@(_isWebhookConnected.Value ? "Webhook Active" : "No Webhook")
+            </span>
+        }
+    </div>
+
+    <div class="mb-3">
+        <label for="@($"url-{Name}")" class="form-label">URL</label>
+        <InputText id="@($"url-{Name}")" class="form-control" @bind-Value="Config.Url" />
+        <ValidationMessage For="@(() => Config.Url)" />
+        <small class="form-text text-muted">Example: @Example</small>
+    </div>
+
+    <div class="mb-3">
+        <label for="@($"apiKey-{Name}")" class="form-label">API Key</label>
+        <InputText id="@($"apiKey-{Name}")" class="form-control" @bind-Value="Config.ApiKey" />
+        <ValidationMessage For="@(() => Config.ApiKey)" />
+        <small class="form-text text-muted">Found in @Name &gt; Settings &gt; General &gt; Security</small>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="TestConnection" disabled="@_isBusy">
+            @if (_isBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            }
+            <i class="bi bi-plug me-1"></i>Test Connection
+        </button>
+
+        @if (ShowWebhook)
+        {
+            <button type="button" class="btn btn-outline-success btn-sm" @onclick="ConnectWebhook" disabled="@_isBusy">
+                <i class="bi bi-link-45deg me-1"></i>Connect Webhook
+            </button>
+            @if (_isWebhookConnected == true)
+            {
+                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="DisconnectWebhook" disabled="@_isBusy">
+                    <i class="bi bi-x-circle me-1"></i>Disconnect
+                </button>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private string Example => $"http://{Name.ToLower()}.instance:{(Name.ToLower() == "sonarr" ? 8989 : 7878)}";
+    private string IconClass => Name.ToLower() == "sonarr" ? "bi-tv" : "bi-film";
+
+    private bool _isBusy;
+    private bool? _isConnected;
+    private bool? _isWebhookConnected;
+
+    [Parameter, EditorRequired] public required ArrConfig Config { get; set; }
+    [Parameter, EditorRequired] public required string Name { get; set; }
+
+    // Webhook parameters (optional)
+    [Parameter] public bool ShowWebhook { get; set; }
+    [Parameter] public string ConfigKey { get; set; } = "";
+    [Parameter] public Func<string>? GetWebhookUrl { get; set; }
+
+    [Inject] public required ArrApiClient ArrApi { get; set; }
+    [Inject] public required IToastService ToastService { get; set; }
+    [Inject] public required IModalService ModalService { get; set; }
+    [Inject] public required IDbContextFactory<AppDbContext> ContextFactory { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Config.Url) || string.IsNullOrWhiteSpace(Config.ApiKey))
+        {
+            return;
+        }
+
+        try
+        {
+            _isConnected = await ArrApi.CanConnect(Config);
+
+            if (_isConnected == true && ShowWebhook)
+            {
+                var notification = await ArrApi.FindMuxarrNotification(Config);
+                _isWebhookConnected = notification != null;
+            }
+        }
+        catch
+        {
+            _isConnected = false;
+        }
+    }
+
+    private async Task TestConnection()
+    {
+        if (string.IsNullOrWhiteSpace(Config.Url) || string.IsNullOrWhiteSpace(Config.ApiKey))
+        {
+            ToastService.ShowWarning($"Please enter a URL and API key for {Name}.");
+            return;
+        }
+
+        _isBusy = true;
+        _isConnected = null;
+        StateHasChanged();
+
+        try
+        {
+            Config.Url = SanitizeUrl(Config.Url);
+            _isConnected = await ArrApi.CanConnect(Config);
+
+            if (_isConnected == true)
+            {
+                ToastService.ShowSuccess($"{Name} connection successful!");
+
+                if (ShowWebhook)
+                {
+                    var notification = await ArrApi.FindMuxarrNotification(Config);
+                    _isWebhookConnected = notification != null;
+
+                    if (!_isWebhookConnected.Value)
+                    {
+                        var connect = await ModalService.ShowConfirm(
+                            $"{Name} is reachable. Would you like to connect the webhook now?",
+                            "Connect Webhook?");
+                        if (connect)
+                        {
+                            await ConnectWebhook();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ToastService.ShowError($"Could not connect to {Name}. Check URL and API key.");
+            }
+        }
+        catch
+        {
+            _isConnected = false;
+            ToastService.ShowError($"Could not connect to {Name}. Check URL and API key.");
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task ConnectWebhook()
+    {
+        var webhookUrl = GetWebhookUrl?.Invoke() ?? "";
+        if (string.IsNullOrWhiteSpace(webhookUrl) || webhookUrl.Contains("<muxarr-host>"))
+        {
+            ToastService.ShowWarning("Please set the Muxarr URL first and save settings.");
+            return;
+        }
+
+        _isBusy = true;
+        StateHasChanged();
+
+        try
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+            var arrConfig = context.Configs.GetOrDefault<ArrConfig>(ConfigKey);
+
+            if (string.IsNullOrWhiteSpace(arrConfig.Url) || string.IsNullOrWhiteSpace(arrConfig.ApiKey))
+            {
+                ToastService.ShowWarning($"{Name} is not configured. Enter the URL and API key first.");
+                return;
+            }
+
+            var existing = await ArrApi.FindMuxarrNotification(arrConfig);
+
+            bool success;
+            if (existing != null)
+            {
+                success = await ArrApi.UpdateWebhookNotification(arrConfig, existing, webhookUrl);
+            }
+            else
+            {
+                success = await ArrApi.CreateWebhookNotification(arrConfig, webhookUrl);
+            }
+
+            if (success)
+            {
+                _isWebhookConnected = true;
+                ToastService.ShowSuccess($"Webhook {(existing != null ? "updated" : "created")} in {Name}!");
+            }
+            else
+            {
+                ToastService.ShowError($"Failed to set up webhook in {Name}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task DisconnectWebhook()
+    {
+        _isBusy = true;
+        StateHasChanged();
+
+        try
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+            var arrConfig = context.Configs.GetOrDefault<ArrConfig>(ConfigKey);
+
+            var existing = await ArrApi.FindMuxarrNotification(arrConfig);
+            if (existing == null)
+            {
+                _isWebhookConnected = false;
+                ToastService.ShowInfo($"No Muxarr webhook found in {Name}.");
+                return;
+            }
+
+            var success = await ArrApi.DeleteWebhookNotification(arrConfig, existing.Id);
+            if (success)
+            {
+                _isWebhookConnected = false;
+                ToastService.ShowSuccess($"Webhook removed from {Name}.");
+            }
+            else
+            {
+                ToastService.ShowError($"Failed to remove webhook from {Name}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    public static string SanitizeUrl(string url)
+    {
+        return new string(url.Where(c => !char.IsWhiteSpace(c)).ToArray()).TrimEnd('/');
+    }
+}
