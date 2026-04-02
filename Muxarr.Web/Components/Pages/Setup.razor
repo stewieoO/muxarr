@@ -173,7 +173,9 @@
         _arrConfigs.Sonarr = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.SonarrKey);
         _arrConfigs.Radarr = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.RadarrKey);
         var webhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
-        _muxarrUrl = webhookConfig.MuxarrUrl ?? "";
+        _muxarrUrl = !string.IsNullOrWhiteSpace(webhookConfig.MuxarrUrl)
+            ? webhookConfig.MuxarrUrl
+            : NavigationManager.BaseUri.TrimEnd('/');
         _webhookApiKey = webhookConfig.ApiKey ?? "";
     }
 
