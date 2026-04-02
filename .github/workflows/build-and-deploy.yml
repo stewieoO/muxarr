@@ -43,11 +43,12 @@ jobs:
           $success = $false
           for ($i = 1; $i -le 3; $i++) {
             choco install mkvtoolnix -y --no-progress
-            if (Get-Command mkvmerge -ErrorAction SilentlyContinue) { $success = $true; break }
-            Write-Warning "Attempt $i failed (mkvmerge not found), retrying in 10s..."
+            if (Test-Path "C:\Program Files\MKVToolNix\mkvmerge.exe") { $success = $true; break }
+            Write-Warning "Attempt $i failed, retrying in 10s..."
             Start-Sleep -Seconds 10
           }
           if (-not $success) { throw "Failed to install mkvtoolnix after 3 attempts" }
+          echo "C:\Program Files\MKVToolNix" >> $env:GITHUB_PATH
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v5
