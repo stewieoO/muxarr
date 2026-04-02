@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Muxarr.Web.HealthChecks.Output;
+using Microsoft.AspNetCore.OutputCaching;
+using Muxarr.Web.HealthChecks.Checks;
 
 namespace Muxarr.Web.HealthChecks;
 
@@ -13,24 +13,38 @@ public static class HealthCheckExtensions
         {
             options.AddPolicy(HealthCheckCachePolicy, builder =>
             {
-                builder.Expire(TimeSpan.FromMinutes(15));
-            });
+                builder.AddPolicy<AlwaysCachePolicy>();
+                builder.Expire(TimeSpan.FromMinutes(5));
+            }, excludeDefaultPolicy: true);
         });
 
-        return services.AddHealthChecks();
+        return services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>("Database")
+            .AddCheck<MkvMergeHealthCheck>("mkvmerge");
     }
 
     public static IEndpointRouteBuilder MapCachedHealthChecks(this WebApplication app)
     {
-        // Output cache middleware (must be before health checks endpoint)
         app.UseOutputCache();
-
-        // Standard JSON health check endpoint
-        app.MapHealthChecks("/api/health", new HealthCheckOptions
-        {
-            ResponseWriter = HealthCheckResponseWriter.WriteResponse
-        }).CacheOutput(HealthCheckCachePolicy);
-
+        app.MapHealthChecks("/health").CacheOutput(HealthCheckCachePolicy);
         return app;
+    }
+
+    private class AlwaysCachePolicy : IOutputCachePolicy
+    {
+        public ValueTask CacheRequestAsync(OutputCacheContext context, CancellationToken cancellationToken)
+        {
+            context.EnableOutputCaching = true;
+            context.AllowCacheLookup = true;
+            context.AllowCacheStorage = true;
+            context.AllowLocking = true;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask ServeFromCacheAsync(OutputCacheContext context, CancellationToken cancellationToken)
+            => ValueTask.CompletedTask;
+
+        public ValueTask ServeResponseAsync(OutputCacheContext context, CancellationToken cancellationToken)
+            => ValueTask.CompletedTask;
     }
 }
