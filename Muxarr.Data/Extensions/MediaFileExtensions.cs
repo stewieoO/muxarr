@@ -131,7 +131,11 @@ public static class MediaFileExtensions
             return tracks;
         }
 
-        var assumeUndetermined = tracks.Count == 1
+        // Don't remap undetermined tracks when the user explicitly allows "Undetermined" as a language.
+        // Their explicit allow should take precedence over the original-language assumption.
+        var undeterminedExplicitlyAllowed = s.AllowedLanguages.Any(x => x.Name == IsoLanguage.UndeterminedName);
+        var assumeUndetermined = !undeterminedExplicitlyAllowed
+                                  && tracks.Count == 1
                                   && tracks[0].ShouldResolveUndetermined(s, 1, originalLanguage);
 
         var tracksByLanguage = tracks.GroupBy(t =>
@@ -201,34 +205,20 @@ public static class MediaFileExtensions
             allowedTracks.AddRange(filteredTracks);
         }
 
-        // If all tracks would be removed, apply fallbacks:
-        // - Audio: always keep at least one (silence is never correct).
-        // - Subtitles: keep untagged tracks rather than silently losing them. A user who configured
-        //   allowed languages clearly wants subtitles — dropping an undetermined sub that might be
-        //   the right language is worse than keeping one that isn't.
-        if (allowedTracks.Count == 0)
+        // If all tracks would be removed, keep at least one for audio (silence is never correct).
+        // For subtitles, having none is fine — users can add "Undetermined" to their allowed
+        // languages if they want to keep unlabeled tracks.
+        if (allowedTracks.Count == 0 && tracks[0].Type != MediaTrackType.Subtitles)
         {
-            if (tracks[0].Type != MediaTrackType.Subtitles)
-            {
-                var bestTracks = tracks
-                    .OrderByDescending(t =>
-                        s.AllowedLanguages.Any(x => x.Name == t.LanguageName) ||
-                        t.LanguageName == originalLanguage)
-                    .ThenByDescending(t => !t.IsCommentary)
-                    .ThenByDescending(t => !t.IsHearingImpaired)
-                    .ThenByDescending(x => x.TrackNumber);
+            var bestTracks = tracks
+                .OrderByDescending(t =>
+                    s.AllowedLanguages.Any(x => x.Name == t.LanguageName) ||
+                    t.LanguageName == originalLanguage)
+                .ThenByDescending(t => !t.IsCommentary)
+                .ThenByDescending(t => !t.IsHearingImpaired)
+                .ThenByDescending(x => x.TrackNumber);
 
-                allowedTracks.Add(bestTracks.First());
-            }
-            else
-            {
-                var untagged = tracks.Where(t =>
-                    t.LanguageName == IsoLanguage.UndeterminedName || t.LanguageName == IsoLanguage.UnknownName).ToList();
-                if (untagged.Count > 0)
-                {
-                    allowedTracks.AddRange(untagged);
-                }
-            }
+            allowedTracks.Add(bestTracks.First());
         }
 
         // Reorder tracks by language priority when enabled.

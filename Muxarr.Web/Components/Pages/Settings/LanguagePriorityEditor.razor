@@ -125,7 +125,7 @@
                           SearchInput="@_searchInput"
                           OnSearchInput="OnSearchInput"
                           OnSelectItem="OnSelect">
-                <ListTemplate>@context.Name — @context.NativeName (@context.ThreeLetterCode)</ListTemplate>
+                <ListTemplate>@context.Name@(context.NativeName != context.Name ? $" — {context.NativeName}" : "")@(context.ThreeLetterCode != null ? $" ({context.ThreeLetterCode.ToUpperInvariant()})" : "")</ListTemplate>
             </AutoComplete>
         </div>
         @if (!HasOriginalLanguage)

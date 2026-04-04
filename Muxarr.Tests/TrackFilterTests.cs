@@ -523,13 +523,13 @@ public class TrackFilterTests
         Assert.AreEqual(1, result.Count);
     }
 
-    // --- Undetermined subtitle fallback (GitHub issue: Japanese film with unlabeled English subs) ---
+    // --- Undetermined subtitle handling ---
 
     [TestMethod]
-    public void Subtitles_SingleUndetermined_KeptAsFallback()
+    public void Subtitles_UndeterminedDropped_WhenNotInAllowedLanguages()
     {
-        // Japanese film, one subtitle track that's actually English but tagged as undetermined.
-        // AllowedLanguages = [English]. Should NOT be deleted.
+        // Undetermined subs are dropped like any other non-allowed language.
+        // Users who want to keep them can add "Undetermined" to their allowed languages.
         var tracks = new List<MediaTrack> { Sub(1, "Undetermined", languageCode: "und") };
         var settings = new TrackSettings
         {
@@ -539,49 +539,23 @@ public class TrackFilterTests
 
         var result = tracks.GetAllowedTracks(settings, "Japanese");
 
-        Assert.AreEqual(1, result.Count, "Undetermined subtitle should be kept as fallback, not silently dropped");
+        Assert.AreEqual(0, result.Count, "Undetermined subs should be dropped when not in allowed languages");
     }
 
     [TestMethod]
-    public void Subtitles_SingleUndetermined_DroppedWhenProperlyTaggedSubsExist()
+    public void Subtitles_UndeterminedKept_WhenExplicitlyAllowed()
     {
-        // When properly-tagged subs exist and survive filtering, undetermined ones are dropped normally.
-        var tracks = new List<MediaTrack>
-        {
-            Sub(1, "Undetermined", languageCode: "und"),
-            Sub(2, "English")
-        };
+        // User adds "Undetermined" to allowed languages to keep unlabeled tracks.
+        var tracks = new List<MediaTrack> { Sub(1, "Undetermined", languageCode: "und") };
         var settings = new TrackSettings
         {
             Enabled = true,
-            AllowedLanguages = [IsoLanguage.Find("English")]
+            AllowedLanguages = [IsoLanguage.Find("English"), IsoLanguage.Find("Undetermined")]
         };
 
         var result = tracks.GetAllowedTracks(settings, "Japanese");
 
-        Assert.AreEqual(1, result.Count);
-        Assert.AreEqual("English", result[0].LanguageName, "Only the properly-tagged English sub should be kept");
-    }
-
-    [TestMethod]
-    public void Subtitles_AllProperlyTaggedWrongLanguage_UndeterminedNotKept()
-    {
-        // French subs (properly tagged) + no undetermined. AllowedLanguages = [English].
-        // All subs are in a known wrong language — don't keep them.
-        var tracks = new List<MediaTrack>
-        {
-            Sub(1, "French"),
-            Sub(2, "German")
-        };
-        var settings = new TrackSettings
-        {
-            Enabled = true,
-            AllowedLanguages = [IsoLanguage.Find("English")]
-        };
-
-        var result = tracks.GetAllowedTracks(settings, "Japanese");
-
-        Assert.AreEqual(0, result.Count, "Properly-tagged wrong-language subs should still be dropped");
+        Assert.AreEqual(1, result.Count, "Undetermined subs should be kept when explicitly allowed");
     }
 
     // --- Empty allowed languages ---

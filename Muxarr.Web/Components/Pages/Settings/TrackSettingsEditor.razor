@@ -44,7 +44,7 @@
         <div class="mb-3 form-check form-switch">
             <InputCheckbox id="@($"assumeUnd{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.AssumeUndeterminedIsOriginal" />
             <label class="form-check-label" for="@($"assumeUnd{TrackTypeLabel}")">Assume undetermined language is original language</label>
-            <small class="form-text text-muted d-block">Some files have a single @(TrackTypeLabel.ToLower()) with no language set. When enabled, this treats it as the original language detected by Sonarr/Radarr instead of filtering it out.</small>
+            <small class="form-text text-muted d-block">Some files have a single @(TrackTypeLabel.ToLower()) with no language set. When enabled, this treats it as the original language detected by Sonarr/Radarr instead of filtering it out. Alternatively, add "Undetermined" to the allowed languages above to always keep unlabeled tracks.</small>
         </div>
 
         <div class="mb-3 form-check form-switch">
