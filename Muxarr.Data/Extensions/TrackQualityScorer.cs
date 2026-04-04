@@ -32,7 +32,7 @@ public static class TrackQualityScorer
     }
 
     /// <summary>
-    /// Audio: Lossless+Spatial > Lossless > Lossy+Spatial > Lossy, then by channel count.
+    /// Audio: Lossless+Spatial > Lossless > Lossy+Spatial > Lossy, then channels, then Regular > Commentary.
     /// </summary>
     private static int ScoreAudioTrack(IMediaTrack track)
     {
@@ -42,11 +42,13 @@ public static class TrackQualityScorer
 
         var isLossless = LosslessAudioCodecs.Contains(codec);
         var isSpatial = IsSpatialAudio(track);
-        return (isLossless ? 1000 : 0) + (isSpatial ? 500 : 0) + (track.AudioChannels * 10);
+        var flagScore = track.IsCommentary ? 0 : track.IsVisualImpaired ? 1 : 2;
+
+        return (isLossless ? 1000 : 0) + (isSpatial ? 500 : 0) + (track.AudioChannels * 10) + flagScore;
     }
 
     /// <summary>
-    /// Subtitles: Text-based (SRT, ASS) preferred over bitmap (PGS, VobSub).
+    /// Subtitles: Text > Bitmap (codec), then Regular > SDH > Forced > Commentary (flags).
     /// </summary>
     private static int ScoreSubtitleTrack(IMediaTrack track)
     {
@@ -54,7 +56,17 @@ public static class TrackQualityScorer
             ? parsed
             : SubtitleCodecExtensions.ParseSubtitleCodec(track.Codec);
 
-        return TextSubtitleCodecs.Contains(codec) ? 1000 : 0;
+        var codecScore = TextSubtitleCodecs.Contains(codec) ? 1000 : 0;
+
+        // Flag tiebreaker: regular subs are the most universally useful.
+        // SDH adds noise (sound descriptions), forced is partial (foreign dialogue only),
+        // commentary is niche. Lower score = less preferred when deduplicating.
+        var flagScore = track.IsCommentary ? 5
+            : track.IsForced ? 10
+            : track.IsHearingImpaired ? 50
+            : 100;
+
+        return codecScore + flagScore;
     }
 
     private static bool IsSpatialAudio(IMediaTrack track)

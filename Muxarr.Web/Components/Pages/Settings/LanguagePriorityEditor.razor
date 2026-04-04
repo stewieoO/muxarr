@@ -82,15 +82,15 @@
                             <small class="lpe-advanced-hint">
                                 @if (!IsAudio)
                                 {
-                                    <text>Text-based (SRT, ASS) preferred over bitmap (PGS, VobSub).</text>
+                                    <text>Text &gt; Bitmap, then Regular &gt; SDH &gt; Forced &gt; Commentary.</text>
                                 }
                                 else if (pref.QualityStrategy == AudioQualityStrategy.SmallestSize)
                                 {
-                                    <text>Lossy &gt; Lossless, fewest channels first.</text>
+                                    <text>Lossy &gt; Lossless, fewest channels first. Commentary ranked lowest.</text>
                                 }
                                 else
                                 {
-                                    <text>Lossless + Spatial &gt; Lossless &gt; Lossy, most channels first.</text>
+                                    <text>Lossless + Spatial &gt; Lossless &gt; Lossy, most channels first. Commentary ranked lowest.</text>
                                 }
                             </small>
                         }
