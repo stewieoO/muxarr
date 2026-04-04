@@ -1,11 +1,12 @@
 <div class="card border-0">
     <div class="card-header bg-dark d-flex justify-content-end py-1 px-3">
-        <button type="button"
-                class="btn btn-sm btn-link text-light p-0"
-                title="Copy to clipboard"
-                @onclick="() => Browser.CopyToClipboard(Value)">
-            <i class="bi bi-clipboard"></i>
-        </button>
+        <ToolTip Tip="Copy to clipboard">
+            <button type="button"
+                    class="btn btn-sm btn-link text-light p-0"
+                    @onclick="() => Browser.CopyToClipboard(Value)">
+                <i class="bi bi-clipboard"></i>
+            </button>
+        </ToolTip>
     </div>
     <pre class="bg-dark text-light rounded-0 rounded-bottom p-3 mb-0" style="white-space: pre-wrap; word-break: break-all;"><code>@Value</code></pre>
 </div>

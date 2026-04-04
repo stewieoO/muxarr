@@ -53,19 +53,25 @@ else
                     <TrackSettingsDisplay Settings="@profile.SubtitleSettings"/>
                 </td>
                 <td class="text-center text-nowrap">
-                    <div class="btn-group btn-group-sm">
-                        <a class="btn btn-outline-primary" title="Edit"
-                           href="/settings/profile/@profile.Id">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <button class="btn btn-outline-secondary" title="Clone"
-                                @onclick="() => CloneProfile(profile)">
-                            <i class="bi bi-copy"></i>
-                        </button>
-                        <button class="btn btn-outline-danger" title="Delete"
-                                @onclick="() => DeleteProfile(profile)">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                    <div class="d-flex gap-1">
+                        <ToolTip Tip="Edit">
+                            <a class="btn btn-sm btn-outline-primary"
+                               href="/settings/profile/@profile.Id">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </ToolTip>
+                        <ToolTip Tip="Clone">
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    @onclick="() => CloneProfile(profile)">
+                                <i class="bi bi-copy"></i>
+                            </button>
+                        </ToolTip>
+                        <ToolTip Tip="Delete">
+                            <button class="btn btn-sm btn-outline-danger"
+                                    @onclick="() => DeleteProfile(profile)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </ToolTip>
                     </div>
                 </td>
             </tr>

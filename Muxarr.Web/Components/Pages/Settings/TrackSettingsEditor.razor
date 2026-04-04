@@ -32,19 +32,19 @@
         <div class="mb-3 form-check form-switch">
             <InputCheckbox id="@($"removeCommentary{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.RemoveCommentary" />
             <label class="form-check-label" for="@($"removeCommentary{TrackTypeLabel}")">Remove Commentary @TrackTypeLabel</label>
-            <small class="form-text text-muted d-block">Will try to detect and remove extra @(TrackTypeLabel.ToLower())s marked as commentary. (Even if the language is whitelisted)</small>
+            <small class="form-text text-muted d-block">Removes commentary @(TrackTypeLabel.ToLower())s. Keeps them if they're the only option for that language.</small>
         </div>
 
         <div class="mb-3 form-check form-switch">
             <InputCheckbox id="@($"removeImpaired{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.RemoveImpaired" />
-            <label class="form-check-label" for="@($"removeImpaired{TrackTypeLabel}")">Remove (Hearing) Impaired @TrackTypeLabel</label>
-            <small class="form-text text-muted d-block">Will try to detect and remove extra hearing / visual impaired @(TrackTypeLabel.ToLower())s (Even if the language is whitelisted)</small>
+            <label class="form-check-label" for="@($"removeImpaired{TrackTypeLabel}")">Remove SDH / Accessibility @TrackTypeLabel</label>
+            <small class="form-text text-muted d-block">Removes @(TrackTypeLabel.ToLower())s for hearing or visually impaired viewers (SDH, closed captions, audio descriptions). Keeps them if they're the only option.</small>
         </div>
 
         <div class="mb-3 form-check form-switch">
             <InputCheckbox id="@($"assumeUnd{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.AssumeUndeterminedIsOriginal" />
             <label class="form-check-label" for="@($"assumeUnd{TrackTypeLabel}")">Assume undetermined language is original language</label>
-            <small class="form-text text-muted d-block">When there is only a single @(TrackTypeLabel.ToLower()) track tagged as "undetermined", assume it is the original language from Sonarr/Radarr.</small>
+            <small class="form-text text-muted d-block">Some files have a single @(TrackTypeLabel.ToLower()) with no language set. When enabled, this treats it as the original language detected by Sonarr/Radarr instead of filtering it out.</small>
         </div>
 
         <div class="mb-3 form-check form-switch">

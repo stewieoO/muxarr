@@ -4,7 +4,7 @@
 @using Muxarr.Web.Components.Pages.Library
 
 <div class="modal-body">
-        <p class="mb-3 text-body-secondary">Select which tracks to keep and edit their properties for the output file.</p>
+        <p class="mb-3 text-body-secondary">Select which tracks to keep, reorder them, and edit their metadata. At least one audio track is required.</p>
 
         @if (_validationError)
         {
@@ -43,14 +43,18 @@
                             <td class="text-center pe-0">
                                 @if (!isVideo)
                                 {
-                                    <button type="button" class="btn btn-link btn-sm text-muted p-0 me-1" title="Move up"
-                                            disabled="@(!CanMoveUp(track))" @onclick="() => MoveTrack(track, -1)">
-                                        <i class="bi bi-chevron-up" style="font-size: 0.7rem;"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-link btn-sm text-muted p-0" title="Move down"
-                                            disabled="@(!CanMoveDown(track))" @onclick="() => MoveTrack(track, 1)">
-                                        <i class="bi bi-chevron-down" style="font-size: 0.7rem;"></i>
-                                    </button>
+                                    <ToolTip Tip="Move up">
+                                        <button type="button" class="btn btn-link btn-sm text-muted p-0 me-1"
+                                                disabled="@(!CanMoveUp(track))" @onclick="() => MoveTrack(track, -1)">
+                                            <i class="bi bi-chevron-up" style="font-size: 0.7rem;"></i>
+                                        </button>
+                                    </ToolTip>
+                                    <ToolTip Tip="Move down">
+                                        <button type="button" class="btn btn-link btn-sm text-muted p-0"
+                                                disabled="@(!CanMoveDown(track))" @onclick="() => MoveTrack(track, 1)">
+                                            <i class="bi bi-chevron-down" style="font-size: 0.7rem;"></i>
+                                        </button>
+                                    </ToolTip>
                                 }
                             </td>
                             <td>
@@ -142,9 +146,11 @@
                             <option value="@p.Id">@p.Name</option>
                         }
                     </select>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ApplyProfileTemplate">
-                        <i class="bi bi-magic me-2"></i>Apply
-                    </button>
+                    <ToolTip Tip="Apply settings from the selected profile">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ApplyProfileTemplate">
+                            <i class="bi bi-magic me-2"></i>Apply Profile
+                        </button>
+                    </ToolTip>
                 }
             </div>
             <div class="d-flex gap-2">

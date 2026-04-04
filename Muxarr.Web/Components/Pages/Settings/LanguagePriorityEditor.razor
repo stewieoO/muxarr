@@ -42,22 +42,25 @@
 
             @if (isFirst && ShowPriority)
             {
-                <i class="bi bi-star-fill lpe-default-star" title="Default track"></i>
+                <ToolTip Tip="Default track"><i class="bi bi-star-fill lpe-default-star"></i></ToolTip>
             }
 
             @if (ShowPriority)
             {
-                <button type="button"
-                        class="lpe-icon-btn @(pref.HasOverrides ? "lpe-gear-active" : "") @(isExpanded ? "lpe-gear-expanded" : "")"
-                        title="Per-language settings"
-                        @onclick="() => ToggleExpanded(index)">
-                    <i class="bi @(pref.HasOverrides ? "bi-gear-fill" : "bi-gear")"></i>
-                </button>
+                <ToolTip Tip="Per-language settings">
+                    <button type="button"
+                            class="lpe-icon-btn @(pref.HasOverrides ? "lpe-gear-active" : "") @(isExpanded ? "lpe-gear-expanded" : "")"
+                            @onclick="() => ToggleExpanded(index)">
+                        <i class="bi @(pref.HasOverrides ? "bi-gear-fill" : "bi-gear")"></i>
+                    </button>
+                </ToolTip>
             }
 
-            <button type="button" class="lpe-icon-btn lpe-remove-btn" @onclick="() => OnRemove(index)">
-                <i class="bi bi-x-lg"></i>
-            </button>
+            <ToolTip Tip="Remove language">
+                <button type="button" class="lpe-icon-btn lpe-remove-btn" @onclick="() => OnRemove(index)">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </ToolTip>
         </div>
 
         @if (isExpanded)

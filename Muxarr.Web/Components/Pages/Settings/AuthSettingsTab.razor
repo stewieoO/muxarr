@@ -60,9 +60,11 @@
                 <div class="mb-3">
                     <div class="input-group">
                         <input type="text" class="form-control" value="@_apiKey" readonly />
-                        <button type="button" class="btn btn-outline-secondary" @onclick="RegenerateApiKey" title="Regenerate API key">
-                            <i class="bi bi-arrow-clockwise"></i>
-                        </button>
+                        <ToolTip Tip="Regenerate API key">
+                            <button type="button" class="btn btn-outline-secondary" @onclick="RegenerateApiKey">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </ToolTip>
                     </div>
                 </div>
             </div>
