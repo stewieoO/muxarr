@@ -201,6 +201,7 @@ public class TrackPriorityTests
         {
             Enabled = true,
             ApplyLanguagePriority = true,
+            ReorderTracks = true,
             AllowedLanguages = [IsoLanguage.Find("Japanese"), IsoLanguage.Find("English")]
         };
 
@@ -272,6 +273,7 @@ public class TrackPriorityTests
         {
             Enabled = true,
             ApplyLanguagePriority = true,
+            ReorderTracks = true,
             AllowedLanguages =
             [
                 IsoLanguage.OriginalLanguage,     // position 0
@@ -296,7 +298,7 @@ public class TrackPriorityTests
     // --- Default Flag Reassignment ---
 
     [TestMethod]
-    public void DefaultFlag_FirstPriorityLanguage_BecomesDefault()
+    public void DefaultFlag_SpecCompliant_AllNormalTracksEligible()
     {
         var profile = new Profile
         {
@@ -304,6 +306,7 @@ public class TrackPriorityTests
             {
                 Enabled = true,
                 ApplyLanguagePriority = true,
+                DefaultStrategy = DefaultTrackStrategy.SpecCompliant,
                 AllowedLanguages = [IsoLanguage.Find("English"), IsoLanguage.Find("Spanish")]
             },
             SubtitleSettings = new TrackSettings { Enabled = false }
@@ -311,7 +314,63 @@ public class TrackPriorityTests
 
         var file = MakeFile("English",
             Audio(1, "English", "Aac", 2, isDefault: false),
-            Audio(2, "Spanish", "Aac", 2, isDefault: true) // Spanish was default
+            Audio(2, "Spanish", "Aac", 2, isDefault: false)
+        );
+
+        var allowed = file.GetAllowedTracks(profile);
+        var outputs = file.BuildTrackOutputs(profile, allowed.ToSnapshots(), file.Tracks.ToSnapshots(), false);
+
+        var audioOutputs = outputs.Where(o => o.Type == MkvMerge.AudioTrack).ToList();
+        Assert.IsTrue(audioOutputs[0].IsDefault == true);   // English = normal, eligible
+        Assert.IsTrue(audioOutputs[1].IsDefault == true);   // Spanish = normal, eligible
+    }
+
+    [TestMethod]
+    public void DefaultFlag_SpecCompliant_CommentaryNotEligible()
+    {
+        var profile = new Profile
+        {
+            AudioSettings = new TrackSettings
+            {
+                Enabled = true,
+                ApplyLanguagePriority = true,
+                DefaultStrategy = DefaultTrackStrategy.SpecCompliant,
+                AllowedLanguages = [IsoLanguage.Find("English")]
+            },
+            SubtitleSettings = new TrackSettings { Enabled = false }
+        };
+
+        var file = MakeFile("English",
+            Audio(1, "English", "Aac", 6),
+            Audio(2, "English", "Aac", 2, commentary: true)
+        );
+
+        var allowed = file.GetAllowedTracks(profile);
+        var outputs = file.BuildTrackOutputs(profile, allowed.ToSnapshots(), file.Tracks.ToSnapshots(), false);
+
+        var audioOutputs = outputs.Where(o => o.Type == MkvMerge.AudioTrack).ToList();
+        Assert.IsTrue(audioOutputs[0].IsDefault == true);    // Normal track = eligible
+        Assert.IsTrue(audioOutputs[1].IsDefault == false);   // Commentary = not eligible
+    }
+
+    [TestMethod]
+    public void DefaultFlag_ForceFirstLanguage_OnlyFirstIsDefault()
+    {
+        var profile = new Profile
+        {
+            AudioSettings = new TrackSettings
+            {
+                Enabled = true,
+                ApplyLanguagePriority = true,
+                DefaultStrategy = DefaultTrackStrategy.ForceFirstLanguage,
+                AllowedLanguages = [IsoLanguage.Find("English"), IsoLanguage.Find("Spanish")]
+            },
+            SubtitleSettings = new TrackSettings { Enabled = false }
+        };
+
+        var file = MakeFile("English",
+            Audio(1, "English", "Aac", 2, isDefault: false),
+            Audio(2, "Spanish", "Aac", 2, isDefault: true)
         );
 
         var allowed = file.GetAllowedTracks(profile);
@@ -388,6 +447,8 @@ public class TrackPriorityTests
             {
                 Enabled = true,
                 ApplyLanguagePriority = true,
+                ReorderTracks = true,
+                DefaultStrategy = DefaultTrackStrategy.ForceFirstLanguage,
                 AllowedLanguages = [IsoLanguage.Find("Japanese"), IsoLanguage.Find("English")]
             },
             SubtitleSettings = new TrackSettings { Enabled = false }
@@ -418,6 +479,8 @@ public class TrackPriorityTests
             {
                 Enabled = true,
                 ApplyLanguagePriority = true,
+                ReorderTracks = true,
+                DefaultStrategy = DefaultTrackStrategy.ForceFirstLanguage,
                 AllowedLanguages =
                 [
                     new LanguagePreference(IsoLanguage.Find("English")) { MaxTracks = 1 },

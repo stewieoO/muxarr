@@ -1,4 +1,5 @@
-<div class="mb-3 border p-3">
+<div>
+    @* --- Track Removal --- *@
     <div class="mb-3 form-check form-switch">
         <InputCheckbox id="@($"strip{TrackTypeLabel}Tracks")" class="form-check-input" @bind-Value="Settings.Enabled" />
         <label class="form-check-label" for="@($"strip{TrackTypeLabel}Tracks")">Remove unwanted @TrackTypeLabel.ToLower() tracks</label>
@@ -20,13 +21,22 @@
             <small class="form-text text-muted">
                 @if (Settings.ApplyLanguagePriority)
                 {
-                    <text>Drag to set priority. First language is used as default and tracks are reordered to match. Use <i class="bi bi-gear"></i> for per-language settings.</text>
+                    <text>Drag to set priority. Use <i class="bi bi-gear"></i> for per-language settings.</text>
                 }
                 else
                 {
                     <text>When there is more than 1 @TrackTypeLabel.ToLower() language in a video file, only allowed @TrackTypeLabel.ToLower() languages are kept.</text>
                 }
             </small>
+
+            @if (Settings.ApplyLanguagePriority)
+            {
+                <div class="mt-2 form-check form-switch">
+                    <InputCheckbox id="@($"reorderTracks{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.ReorderTracks" />
+                    <label class="form-check-label" for="@($"reorderTracks{TrackTypeLabel}")">Reorder tracks to match priority</label>
+                    <small class="form-text text-muted d-block">Physically reorders tracks in the file. Useful for Plex and players that ignore the default flag. Requires remux.</small>
+                </div>
+            }
         </div>
 
         <div class="mb-3 form-check form-switch">
@@ -47,79 +57,6 @@
             <small class="form-text text-muted d-block">Some files have a single @(TrackTypeLabel.ToLower()) with no language set. When enabled, this treats it as the original language detected by Sonarr/Radarr instead of filtering it out. Alternatively, add "Undetermined" to the allowed languages above to always keep unlabeled tracks.</small>
         </div>
 
-        <div class="mb-3 form-check form-switch">
-            <InputCheckbox id="@($"standardize{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.StandardizeTrackNames" @bind-Value:after="OnStandardizeToggled" />
-            <label class="form-check-label" for="@($"standardize{TrackTypeLabel}")">Standardize @TrackTypeLabel Track Names</label>
-            <small class="form-text text-muted d-block">Rename @(TrackTypeLabel.ToLower()) tracks during conversion using a template.</small>
-        </div>
-
-        @if (Settings.StandardizeTrackNames)
-        {
-            <div class="mb-3 ms-4">
-                <div class="option-label text-muted small mb-1">Default template</div>
-                <InputText id="@($"trackNameTemplate{TrackTypeLabel}")" class="form-control form-control-sm" @bind-Value="Settings.TrackNameTemplate" />
-                <small class="form-text text-muted d-block">
-                    Placeholders: <code>{language}</code>, <code>{nativelanguage}</code>, <code>{codec}</code>,
-                    @if (IsAudio)
-                    {
-                        <code>{channels}</code><text>,</text>
-                    }
-                    <code>{trackname}</code>,
-                    <code>{hi}</code>, <code>{forced}</code>, <code>{commentary}</code>, <code>{visualimpaired}</code>, <code>{original}</code>, <code>{flags}</code>.
-                    Leave empty to clear all track names.
-                </small>
-
-                @if (!string.IsNullOrWhiteSpace(Settings.TrackNameTemplate))
-                {
-                    <div class="mt-2 text-muted small">
-                        <i class="bi bi-eye me-1"></i>Preview:
-                        <div class="mt-1">
-                            @foreach (var track in GetPreviewTracks())
-                            {
-                                var template = Settings.ResolveTemplate(track);
-                                var resolved = track.ApplyTrackNameTemplate(template);
-                                var isOverride = template != Settings.TrackNameTemplate;
-                                <div>
-                                    <code>@(resolved ?? "(empty)")</code>
-                                    @if (isOverride)
-                                    {
-                                        <span class="text-info ms-1" style="font-size: 0.75rem;">override</span>
-                                    }
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-
-                <div class="mt-3">
-                    <a class="text-decoration-none small" data-bs-toggle="collapse" href="#@($"flagOverrides{TrackTypeLabel}")" role="button">
-                        <i class="bi bi-sliders me-1"></i>Flag-specific overrides
-                    </a>
-                </div>
-
-                <div class="collapse @(_hasOverrides ? "show" : "")" id="@($"flagOverrides{TrackTypeLabel}")">
-                    <div class="d-flex flex-column gap-2 mt-2 ms-2 border-start ps-3">
-                        @foreach (var flag in TrackFlagExtensions.All)
-                        {
-                            var currentFlag = flag;
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge text-bg-secondary" style="width: 110px;">
-                                    <i class="bi @FlagIcon(flag) me-1"></i>@flag.GetDisplayName()
-                                </span>
-                                <input type="text"
-                                       class="form-control form-control-sm"
-                                       style="max-width: 300px;"
-                                       placeholder="(uses default)"
-                                       value="@GetOverride(currentFlag)"
-                                       @onchange="e => SetOverride(currentFlag, e.Value?.ToString())" />
-                            </div>
-                        }
-                    </div>
-                    <small class="text-muted d-block mt-2">Leave blank to use the default template. First matching flag wins.</small>
-                </div>
-            </div>
-        }
-
         @if (!IsAudio)
         {
             <div class="mb-3 form-check form-switch">
@@ -135,6 +72,117 @@
                 </div>
             }
         }
+    }
+
+    @* --- Default Track --- *@
+    <div class="mb-3">
+        <label class="form-label mb-1">Default track</label>
+        <select class="form-select form-select-sm" style="max-width: 320px;"
+                value="@Settings.DefaultStrategy"
+                @onchange="e => Settings.DefaultStrategy = Enum.Parse<DefaultTrackStrategy>(e.Value?.ToString() ?? nameof(DefaultTrackStrategy.DontChange))">
+            <option value="@nameof(DefaultTrackStrategy.DontChange)">Don't change (preserve original)</option>
+            <option value="@nameof(DefaultTrackStrategy.SpecCompliant)">Let my player decide (recommended)</option>
+            @if (Settings is { Enabled: true, ApplyLanguagePriority: true })
+            {
+                <option value="@nameof(DefaultTrackStrategy.ForceFirstLanguage)">Always prefer first language</option>
+            }
+        </select>
+        <small class="form-text text-muted d-block">
+            @switch (Settings.DefaultStrategy)
+            {
+                case DefaultTrackStrategy.SpecCompliant:
+                    <text>Commentary and accessibility tracks are marked as non-default. Your player picks from the rest.</text>
+                    break;
+                case DefaultTrackStrategy.ForceFirstLanguage:
+                    var firstLang = Settings.AllowedLanguages.FirstOrDefault()?.DisplayName;
+                    if (firstLang != null)
+                    {
+                        <text>Only <strong>@firstLang</strong> tracks are marked as default, based on your priority list. For players without language settings.</text>
+                    }
+                    else
+                    {
+                        <text>Only tracks matching the first language in your priority list are marked as default. For players without language settings.</text>
+                    }
+                    break;
+                default:
+                    <text>Original default flags from the source file are preserved.</text>
+                    break;
+            }
+        </small>
+    </div>
+
+    @* --- Track Names --- *@
+    <div class="mb-3 form-check form-switch">
+        <InputCheckbox id="@($"standardize{TrackTypeLabel}")" class="form-check-input" @bind-Value="Settings.StandardizeTrackNames" @bind-Value:after="OnStandardizeToggled" />
+        <label class="form-check-label" for="@($"standardize{TrackTypeLabel}")">Standardize @TrackTypeLabel Track Names</label>
+        <small class="form-text text-muted d-block">Rename @(TrackTypeLabel.ToLower()) tracks during conversion using a template.</small>
+    </div>
+
+    @if (Settings.StandardizeTrackNames)
+    {
+        <div class="mb-3 ms-4">
+            <div class="option-label text-muted small mb-1">Default template</div>
+            <InputText id="@($"trackNameTemplate{TrackTypeLabel}")" class="form-control form-control-sm" @bind-Value="Settings.TrackNameTemplate" />
+            <small class="form-text text-muted d-block">
+                Placeholders: <code>{language}</code>, <code>{nativelanguage}</code>, <code>{codec}</code>,
+                @if (IsAudio)
+                {
+                    <code>{channels}</code><text>,</text>
+                }
+                <code>{trackname}</code>,
+                <code>{hi}</code>, <code>{forced}</code>, <code>{commentary}</code>, <code>{visualimpaired}</code>, <code>{original}</code>, <code>{flags}</code>.
+                Leave empty to clear all track names.
+            </small>
+
+            @if (!string.IsNullOrWhiteSpace(Settings.TrackNameTemplate))
+            {
+                <div class="mt-2 text-muted small">
+                    <i class="bi bi-eye me-1"></i>Preview:
+                    <div class="mt-1">
+                        @foreach (var track in GetPreviewTracks())
+                        {
+                            var template = Settings.ResolveTemplate(track);
+                            var resolved = track.ApplyTrackNameTemplate(template);
+                            var isOverride = template != Settings.TrackNameTemplate;
+                            <div>
+                                <code>@(resolved ?? "(empty)")</code>
+                                @if (isOverride)
+                                {
+                                    <span class="text-info ms-1" style="font-size: 0.75rem;">override</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="mt-3">
+                <a class="text-decoration-none small" data-bs-toggle="collapse" href="#@($"flagOverrides{TrackTypeLabel}")" role="button">
+                    <i class="bi bi-sliders me-1"></i>Flag-specific overrides
+                </a>
+            </div>
+
+            <div class="collapse @(_hasOverrides ? "show" : "")" id="@($"flagOverrides{TrackTypeLabel}")">
+                <div class="d-flex flex-column gap-2 mt-2 ms-2 border-start ps-3">
+                    @foreach (var flag in TrackFlagExtensions.All)
+                    {
+                        var currentFlag = flag;
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge text-bg-secondary" style="width: 110px;">
+                                <i class="bi @FlagIcon(flag) me-1"></i>@flag.GetDisplayName()
+                            </span>
+                            <input type="text"
+                                   class="form-control form-control-sm"
+                                   style="max-width: 300px;"
+                                   placeholder="(uses default)"
+                                   value="@GetOverride(currentFlag)"
+                                   @onchange="e => SetOverride(currentFlag, e.Value?.ToString())" />
+                        </div>
+                    }
+                </div>
+                <small class="text-muted d-block mt-2">Leave blank to use the default template. First matching flag wins.</small>
+            </div>
+        </div>
     }
 </div>
 

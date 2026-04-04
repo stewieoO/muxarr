@@ -155,10 +155,11 @@
     align-items: center;
     gap: 0.75rem;
     margin-top: 0.25rem;
+    flex-wrap: wrap;
 }
 
 .lpe-add-wrapper {
-    min-width: 420px;
+    min-width: min(420px, 100%);
     flex-grow: 1;
 }
 

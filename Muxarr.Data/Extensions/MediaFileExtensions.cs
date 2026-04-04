@@ -221,9 +221,10 @@ public static class MediaFileExtensions
             allowedTracks.Add(bestTracks.First());
         }
 
-        // Reorder tracks by language priority when enabled.
+        // Physically reorder tracks by language priority when opted in.
         // Uses a stable sort so tracks within the same language keep their source order.
-        if (s.ApplyLanguagePriority && allowedTracks.Count > 1)
+        // Requires remux — only needed for players that use track order (e.g., Plex).
+        if (s is { ApplyLanguagePriority: true, ReorderTracks: true } && allowedTracks.Count > 1)
         {
             allowedTracks = allowedTracks
                 .OrderBy(t => GetLanguagePriority(t.LanguageName, s, originalLanguage))
@@ -625,20 +626,34 @@ public static class MediaFileExtensions
     }
 
     /// <summary>
-    /// Sets the first track of the given type as default when language priority is enabled.
+    /// Assigns default track flags based on the configured strategy.
+    /// DontChange: no-op, preserve original flags.
+    /// SpecCompliant: commentary/HI/VI = not default, everything else = default (spec-correct).
+    /// ForceFirstLanguage: only first track = default, rest = not default (needs priority list).
     /// </summary>
     private static void ReassignPreviewDefaultFlags(List<TrackSnapshot> previews, TrackSettings? settings,
         MediaTrackType trackType)
     {
-        if (settings is not { ApplyLanguagePriority: true })
+        if (settings == null || settings.DefaultStrategy == DefaultTrackStrategy.DontChange)
         {
             return;
         }
 
         var tracksOfType = previews.Where(t => t.Type == trackType).ToList();
-        for (var i = 0; i < tracksOfType.Count; i++)
+
+        if (settings.DefaultStrategy == DefaultTrackStrategy.ForceFirstLanguage && settings.ApplyLanguagePriority)
         {
-            tracksOfType[i].IsDefault = i == 0;
+            for (var i = 0; i < tracksOfType.Count; i++)
+            {
+                tracksOfType[i].IsDefault = i == 0;
+            }
+        }
+        else if (settings.DefaultStrategy == DefaultTrackStrategy.SpecCompliant)
+        {
+            foreach (var track in tracksOfType)
+            {
+                track.IsDefault = !track.IsCommentary && !track.IsHearingImpaired && !track.IsVisualImpaired;
+            }
         }
     }
 

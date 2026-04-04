@@ -7,6 +7,27 @@ using Muxarr.Data.Extensions;
 
 namespace Muxarr.Data.Entities
 {
+    public enum DefaultTrackStrategy
+    {
+        /// <summary>
+        /// Preserve original default flags from the source file. No changes made.
+        /// </summary>
+        DontChange,
+
+        /// <summary>
+        /// Commentary and accessibility tracks are marked as non-default.
+        /// All other tracks remain eligible — the player picks based on its own language preferences.
+        /// </summary>
+        SpecCompliant,
+
+        /// <summary>
+        /// Only the first priority language's tracks are marked as default.
+        /// Requires ApplyLanguagePriority to be enabled for a meaningful priority order.
+        /// Use when the player doesn't have language preference settings.
+        /// </summary>
+        ForceFirstLanguage
+    }
+
     public enum TrackFlag
     {
         [Display(Name = "SDH")]
@@ -57,10 +78,21 @@ namespace Muxarr.Data.Entities
         public bool AssumeUndeterminedIsOriginal { get; set; }
 
         /// <summary>
-        /// When enabled, the order of AllowedLanguages determines track ordering and default assignment.
-        /// The first language's first track is marked as default; tracks are reordered to match list priority.
+        /// When enabled, the order of AllowedLanguages determines default flag behavior and enables
+        /// per-language settings (MaxTracks, quality preference).
         /// </summary>
         public bool ApplyLanguagePriority { get; set; }
+
+        /// <summary>
+        /// Controls how the default track flag is assigned when ApplyLanguagePriority is enabled.
+        /// </summary>
+        public DefaultTrackStrategy DefaultStrategy { get; set; }
+
+        /// <summary>
+        /// When enabled, tracks are physically reordered in the file to match the AllowedLanguages priority.
+        /// Requires a full remux. Useful for players like Plex that ignore the default flag and use track order.
+        /// </summary>
+        public bool ReorderTracks { get; set; }
 
         public bool StandardizeTrackNames { get; set; }
         public string TrackNameTemplate { get; set; } = string.Empty;

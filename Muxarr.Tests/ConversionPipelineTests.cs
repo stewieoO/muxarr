@@ -1365,6 +1365,7 @@ public class ConversionPipelineTests
         {
             Enabled = true,
             ApplyLanguagePriority = true,
+            DefaultStrategy = DefaultTrackStrategy.ForceFirstLanguage,
             AllowedLanguages = [IsoLanguage.Find("English"), IsoLanguage.Find("Japanese")]
         });
 
