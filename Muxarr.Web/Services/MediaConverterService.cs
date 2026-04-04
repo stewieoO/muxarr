@@ -135,7 +135,7 @@ public class MediaConverterService(
         }
     }
 
-    public async Task<bool> AddMediaToQueue(MediaFile media)
+    public async Task<bool> AddMediaToQueue(MediaFile media, Profile? profileOverride = null)
     {
         if (!File.Exists(media.Path))
         {
@@ -146,7 +146,7 @@ public class MediaConverterService(
         using var scope = serviceScopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var profile = media.Profile ?? context.Profiles.ToList().GetBestCandidate(media.Path);
+        var profile = profileOverride ?? media.Profile ?? context.Profiles.ToList().GetBestCandidate(media.Path);
 
         if (profile == null)
         {
