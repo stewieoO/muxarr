@@ -129,7 +129,8 @@
                     </div>
                     <div class="border rounded">
                         <pre class="m-0 p-3 small bg-body-tertiary text-body"
-                             style="max-height: 500px; overflow: auto;"><code class="text-body">@File.MkvMergeOutput</code></pre>
+                             style="max-height: 500px; overflow: auto;"><code
+                                class="text-body">@File.MkvMergeOutput</code></pre>
                     </div>
                 </div>
             </div>
@@ -163,22 +164,22 @@
         await using var context = await ContextFactory.CreateDbContextAsync();
         File = await context.MediaFiles
             .WithTracksAndProfile()
-            .Include(
-                x => x.Conversions
-                    .OrderByDescending(y => y.CreatedDate)
-                    .Take(5)
+            .Include(x => x.Conversions
+                .OrderByDescending(y => y.CreatedDate)
+                .Take(5)
             ).FirstOrDefaultAsync(f => f.Id == Id);
         if (File == null)
         {
             return;
         }
+
         // Needed to fix order.
         File.Conversions = File.Conversions.OrderByDescending(x => x.CreatedDate).ToList();
         AllowedTracks = File.GetAllowedTracks(File.Profile);
         PreviewTracks = File.GetPreviewTracks(File.Profile);
         _profiles = await context.Profiles.OrderBy(p => p.Name).ToListAsync();
     }
-    
+
     private void OnConverterStateChanged(object? sender, ConverterProgressEvent e)
     {
         _ = InvokeAsync(() =>
@@ -212,6 +213,7 @@
             ToastService.ShowError($"'{File!.GetName()}' is not accessible. The file or its mount may be offline.");
             return;
         }
+
         await LoadFile();
         ToastService.ShowSuccess($"File {File!.GetName()} was added to conversion queue!");
     }
@@ -229,6 +231,7 @@
             ToastService.ShowError($"'{File!.GetName()}' is not accessible. The file or its mount may be offline.");
             return;
         }
+
         await LoadFile();
         ToastService.ShowSuccess($"Custom conversion for {File!.GetName()} was added to queue!");
     }
@@ -243,6 +246,7 @@
             ToastService.ShowError("File not found.");
             return;
         }
+
         await MediaScanner.ScanMediaFile(dbFile, true, context, dbFile.Profile);
         await LoadFile();
         ToastService.ShowSuccess($"Analysis complete for {dbFile.GetName()}.");
@@ -253,4 +257,5 @@
         MediaConverter.ConverterStateChanged -= OnConverterStateChanged;
         base.Dispose();
     }
+
 }

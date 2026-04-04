@@ -15,27 +15,24 @@ public class MediaScannerService(
     ILogger<MediaScannerService> logger,
     ArrSyncService arrSyncService) : ScheduledServiceBase(logger)
 {
-    public override TimeSpan Interval => TimeSpan.FromDays(1);
-
     private readonly ConcurrentQueue<ScanDirectory> _directoryQueue = new();
-    private CancellationTokenSource? _scanCts;
-    public event EventHandler<bool>? ScanningStateChanged;
     private DateTime _lastScanUpdate = DateTime.MinValue;
+    private CancellationTokenSource? _scanCts;
+    public override TimeSpan Interval => TimeSpan.FromDays(1);
 
     public bool IsScanning
     {
         get;
         private set
         {
-            if (field == value)
-            {
-                return;
-            }
+            if (field == value) return;
 
             field = value;
             ScanningStateChanged?.Invoke(this, value);
         }
     }
+
+    public event EventHandler<bool>? ScanningStateChanged;
 
     protected override async Task ExecuteAsync(CancellationToken token)
     {
@@ -51,9 +48,8 @@ public class MediaScannerService(
             await arrSyncService.RunAsync(linked);
 
             while (!linked.IsCancellationRequested && _directoryQueue.TryDequeue(out var directory))
-            {
-                await ScanDirectory(directory.Path, directory.ForceRescan, directory.Profile, linked).ConfigureAwait(false);
-            }
+                await ScanDirectory(directory.Path, directory.ForceRescan, directory.Profile, linked)
+                    .ConfigureAwait(false);
 
             if (linked.IsCancellationRequested)
             {
@@ -74,8 +70,13 @@ public class MediaScannerService(
 
     public void Cancel()
     {
-        try { _scanCts?.Cancel(); }
-        catch (ObjectDisposedException) { }
+        try
+        {
+            _scanCts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
     }
 
     public async Task ScanAll(bool forceRescan)
@@ -84,16 +85,12 @@ public class MediaScannerService(
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         foreach (var profile in await context.Profiles.ToListAsync())
-        {
-            foreach (var directory in profile.Directories)
-            {
-                _directoryQueue.Enqueue(new ScanDirectory(directory, forceRescan, profile));
-            }
-        }
+        foreach (var directory in profile.Directories)
+            _directoryQueue.Enqueue(new ScanDirectory(directory, forceRescan, profile));
 
         _ = RunAsync(CancellationToken.None);
     }
-    
+
     private async Task ScanDirectory(string directory, bool forceRescan, Profile profile, CancellationToken token)
     {
         if (!Directory.Exists(directory))
@@ -110,18 +107,13 @@ public class MediaScannerService(
 
         foreach (var file in Directory.EnumerateFiles(directory, "*.*", SearchOption.AllDirectories))
         {
-            if (token.IsCancellationRequested)
-            {
-                return;
-            }
+            if (token.IsCancellationRequested) return;
 
             var ext = Path.GetExtension(file);
             if (string.IsNullOrEmpty(ext) ||
                 (!ext.Equals(".mkv", StringComparison.OrdinalIgnoreCase) &&
                  !ext.Equals(".mp4", StringComparison.OrdinalIgnoreCase)))
-            {
                 continue;
-            }
 
             await ScanFileCore(file, forceRescan, profile, context).ConfigureAwait(false);
             scanned++;
@@ -195,14 +187,9 @@ public class MediaScannerService(
                 else
                 {
                     // Fall back to metadata from webhook payload when MediaInfo hasn't been synced yet
-                    if (!string.IsNullOrEmpty(webhookTitle))
-                    {
-                        dbFile.Title = webhookTitle;
-                    }
+                    if (!string.IsNullOrEmpty(webhookTitle)) dbFile.Title = webhookTitle;
                     if (!string.IsNullOrEmpty(webhookOriginalLanguage))
-                    {
                         dbFile.OriginalLanguage = webhookOriginalLanguage;
-                    }
                 }
             }
 
@@ -211,13 +198,12 @@ public class MediaScannerService(
             {
                 var info = await MkvMerge.GetFileInfo(dbFile.Path);
                 if (!string.IsNullOrEmpty(info.Error))
-                {
                     logger.LogWarning("mkvmerge failed for '{Path}': {Error}", dbFile.Path, info.Error);
-                }
 
                 dbFile.MkvMergeOutput = !string.IsNullOrEmpty(info.Error) ? info.Error : info.Output;
                 dbFile.SetFileData(info.Result); // Set all tracks using mkvmerge output.
-                dbFile.HasRedundantTracks = profile != null && dbFile.GetAllowedTracks(profile).Count < dbFile.TrackCount;
+                dbFile.HasRedundantTracks =
+                    profile != null && dbFile.GetAllowedTracks(profile).Count < dbFile.TrackCount;
                 dbFile.HasNonStandardMetadata = dbFile.CheckHasNonStandardMetadata(profile);
             }
 
@@ -234,7 +220,7 @@ public class MediaScannerService(
     {
         using var scope = serviceScopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var profiles = await context.Profiles.ToListAsync(cancellationToken: token);
+        var profiles = await context.Profiles.ToListAsync(token);
 
         var allDirectories = profiles.SelectMany(p => p.Directories).Distinct().ToList();
 
@@ -242,14 +228,13 @@ public class MediaScannerService(
         // If a directory is offline we leave its records intact and warn.
         var inaccessible = allDirectories.Where(d => !Directory.Exists(d)).ToList();
         if (inaccessible.Count > 0)
-        {
-            logger.LogDebug("Skipping purge for {Count} inaccessible director(ies): {Directories}", inaccessible.Count, string.Join(", ", inaccessible));
-        }
+            logger.LogDebug("Skipping purge for {Count} inaccessible director(ies): {Directories}", inaccessible.Count,
+                string.Join(", ", inaccessible));
 
         // Project only Id/Path to avoid loading heavy JSON columns (Tracks, MkvMergeOutput) into memory
         var files = await context.MediaFiles
             .Select(f => new { f.Id, f.Path })
-            .ToListAsync(cancellationToken: token);
+            .ToListAsync(token);
 
         var idsToRemove = files
             .Where(f =>

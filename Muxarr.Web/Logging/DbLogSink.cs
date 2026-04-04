@@ -9,6 +9,8 @@ public class DbLogSink : ILogEventSink
 {
     private readonly ConcurrentQueue<LogEntry> _queue = new();
 
+    public bool IsEmpty => _queue.IsEmpty;
+
     public void Emit(LogEvent logEvent)
     {
         var source = string.Empty;
@@ -18,10 +20,7 @@ public class DbLogSink : ILogEventSink
 
             // Shorten fully qualified names: "Muxarr.Web.Services.MediaConverterService" -> "MediaConverterService"
             var lastDot = source.LastIndexOf('.');
-            if (lastDot >= 0)
-            {
-                source = source[(lastDot + 1)..];
-            }
+            if (lastDot >= 0) source = source[(lastDot + 1)..];
         }
 
         _queue.Enqueue(new LogEntry
@@ -34,21 +33,25 @@ public class DbLogSink : ILogEventSink
         });
     }
 
-    public bool TryDequeue(out LogEntry entry) => _queue.TryDequeue(out entry!);
-
-    public bool IsEmpty => _queue.IsEmpty;
+    public bool TryDequeue(out LogEntry entry)
+    {
+        return _queue.TryDequeue(out entry!);
+    }
 }
 
 public static class LogEventLevelExtensions
 {
-    public static string ToShortString(this LogEventLevel level) => level switch
+    public static string ToShortString(this LogEventLevel level)
     {
-        LogEventLevel.Verbose => "VRB",
-        LogEventLevel.Debug => "DBG",
-        LogEventLevel.Information => "INF",
-        LogEventLevel.Warning => "WRN",
-        LogEventLevel.Error => "ERR",
-        LogEventLevel.Fatal => "FTL",
-        _ => level.ToString()
-    };
+        return level switch
+        {
+            LogEventLevel.Verbose => "VRB",
+            LogEventLevel.Debug => "DBG",
+            LogEventLevel.Information => "INF",
+            LogEventLevel.Warning => "WRN",
+            LogEventLevel.Error => "ERR",
+            LogEventLevel.Fatal => "FTL",
+            _ => level.ToString()
+        };
+    }
 }

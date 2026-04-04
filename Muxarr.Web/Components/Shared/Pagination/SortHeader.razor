@@ -8,9 +8,9 @@
 
 @code {
     [Parameter] public required RenderFragment ChildContent { get; set; }
-    [Parameter, EditorRequired] public required string SortProperty { get; set; }
-    [Parameter, EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
-    
+    [Parameter][EditorRequired] public required string SortProperty { get; set; }
+    [Parameter][EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
+
     private string SortIcon => Parent.IsAscending switch
     {
         true => "bi-sort-up",
@@ -20,7 +20,7 @@
 
     private async Task OnSortClick()
     {
-	    Parent.IsAscending = Parent.CurrentSortProperty == SortProperty
+        Parent.IsAscending = Parent.CurrentSortProperty == SortProperty
             ? Parent.IsAscending switch
             {
                 null => true,
@@ -31,4 +31,5 @@
 
         await Parent.HandleSort(SortProperty);
     }
+
 }

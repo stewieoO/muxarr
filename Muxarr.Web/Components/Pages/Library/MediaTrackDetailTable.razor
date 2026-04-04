@@ -1,38 +1,35 @@
 <table class="table table-sm">
     <thead>
-        <tr>
-            <th>ID</th>
-            <th>Language</th>
-            <th>Format</th>
-            <th>Info</th>
-        </tr>
+    <tr>
+        <th>ID</th>
+        <th>Language</th>
+        <th>Format</th>
+        <th>Info</th>
+    </tr>
     </thead>
     <tbody>
-        @foreach (var track in OrderedTracks)
-        {
-            var preview = PreviewTracks?.FirstOrDefault(p => p.TrackNumber == track.TrackNumber);
-            var isRemoved = PreviewTracks != null && preview == null;
-            <MediaTrackDetail Track="track"
-                              IsAllowed="!isRemoved"
-                              OriginalLanguage="@OriginalLanguage"
-                              Preview="preview"/>
-        }
+    @foreach (var track in OrderedTracks)
+    {
+        var preview = PreviewTracks?.FirstOrDefault(p => p.TrackNumber == track.TrackNumber);
+        var isRemoved = PreviewTracks != null && preview == null;
+        <MediaTrackDetail Track="track"
+                          IsAllowed="!isRemoved"
+                          OriginalLanguage="@OriginalLanguage"
+                          Preview="preview"/>
+    }
     </tbody>
 </table>
 
 @code {
-    [Parameter, EditorRequired]
-    public IEnumerable<IMediaTrack> Tracks { get; set; } = default!;
+    [Parameter][EditorRequired] public IEnumerable<IMediaTrack> Tracks { get; set; } = default!;
 
-    [Parameter]
-    public List<TrackSnapshot>? PreviewTracks { get; set; }
+    [Parameter] public List<TrackSnapshot>? PreviewTracks { get; set; }
 
-    [Parameter, EditorRequired]
-    public string? OriginalLanguage { get; set; }
+    [Parameter][EditorRequired] public string? OriginalLanguage { get; set; }
 
     /// <summary>
-    /// When preview tracks are available, renders kept tracks in their new priority order
-    /// with removed tracks appended at the end. Otherwise uses source order.
+    ///     When preview tracks are available, renders kept tracks in their new priority order
+    ///     with removed tracks appended at the end. Otherwise uses source order.
     /// </summary>
     private IEnumerable<IMediaTrack> OrderedTracks
     {
@@ -54,4 +51,5 @@
                 .ThenBy(t => t.TrackNumber);
         }
     }
+
 }

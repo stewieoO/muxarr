@@ -45,12 +45,10 @@ public class WebHookController(
             return Ok("No paths");
         }
 
-        foreach (var item in items)
-        {
-            webhookService.Enqueue(item);
-        }
+        foreach (var item in items) webhookService.Enqueue(item);
 
-        logger.LogInformation("Webhook accepted {Count} file(s) from {EventType} event", items.Count, payload.EventType);
+        logger.LogInformation("Webhook accepted {Count} file(s) from {EventType} event", items.Count,
+            payload.EventType);
         return Ok("Accepted");
     }
 

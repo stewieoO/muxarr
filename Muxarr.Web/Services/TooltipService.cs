@@ -2,14 +2,13 @@ namespace Muxarr.Web.Services;
 
 public class TooltipService
 {
+    private readonly Lock _lock = new();
+    private readonly List<Action> _subscribers = new();
     public string? Text { get; private set; }
     public double X { get; private set; }
     public double Y { get; private set; }
     public bool Flipped { get; private set; }
     public bool IsVisible { get; private set; }
-
-    private readonly Lock _lock = new();
-    private readonly List<Action> _subscribers = new();
 
     public void Show(string text, double x, double y, bool flipped = false)
     {
@@ -23,10 +22,7 @@ public class TooltipService
 
     public void Hide()
     {
-        if (!IsVisible)
-        {
-            return;
-        }
+        if (!IsVisible) return;
 
         IsVisible = false;
         NotifySubscribers();
@@ -36,10 +32,7 @@ public class TooltipService
     {
         lock (_lock)
         {
-            if (!_subscribers.Contains(callback))
-            {
-                _subscribers.Add(callback);
-            }
+            if (!_subscribers.Contains(callback)) _subscribers.Add(callback);
         }
     }
 
@@ -59,9 +52,6 @@ public class TooltipService
             snapshot = [.. _subscribers];
         }
 
-        foreach (var subscriber in snapshot)
-        {
-            subscriber.Invoke();
-        }
+        foreach (var subscriber in snapshot) subscriber.Invoke();
     }
 }

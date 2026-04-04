@@ -1,13 +1,11 @@
 using Blazored.Modal;
 using Blazored.Toast;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
 using Muxarr.Core.Api;
 using Muxarr.Core.Utilities;
 using Muxarr.Data;
-using Muxarr.Data.Extensions;
-using Muxarr.Web.Components;
 using Muxarr.Web.Authentication;
+using Muxarr.Web.Components;
 using Muxarr.Web.HealthChecks;
 using Muxarr.Web.Logging;
 using Muxarr.Web.Services;
@@ -33,10 +31,7 @@ await builder.RunWithLoggingAsync(async b =>
     b.Services.AddDbContext<AppDbContext>();
     b.Services.AddDataProtection()
         .PersistKeysToDbContext<AppDbContext>();
-    b.Services.AddHttpClient("Arr", client =>
-    {
-        client.Timeout = TimeSpan.FromSeconds(10);
-    });
+    b.Services.AddHttpClient("Arr", client => { client.Timeout = TimeSpan.FromSeconds(10); });
 
     // Authentication & rate limiting
     b.Services.AddMuxarrAuthentication();
@@ -71,10 +66,7 @@ await builder.RunWithLoggingAsync(async b =>
     }
 
     // HTTP pipeline
-    if (!app.Environment.IsDevelopment())
-    {
-        app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    }
+    if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error", true);
 
     app.UseStaticFiles();
     app.MapStaticAssets();

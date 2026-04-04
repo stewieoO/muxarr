@@ -1,5 +1,4 @@
 @using Muxarr.Core.Config
-
 <select class="form-select form-select-sm" style="width: auto;" value="@Value"
         @onchange="OnChange">
     <option value="">@Placeholder</option>
@@ -10,7 +9,7 @@
 </select>
 
 @code {
-    [Parameter, EditorRequired] public string Placeholder { get; set; } = "";
+    [Parameter][EditorRequired] public string Placeholder { get; set; } = "";
     [Parameter] public string Value { get; set; } = "";
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
     [Parameter] public List<DistributionEntry> Items { get; set; } = [];
@@ -20,4 +19,5 @@
         var val = e.Value?.ToString() ?? "";
         await ValueChanged.InvokeAsync(val);
     }
+
 }

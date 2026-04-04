@@ -5,16 +5,14 @@ namespace Muxarr.Web.HealthChecks.Checks;
 
 public class MkvMergeHealthCheck(ILogger<MkvMergeHealthCheck> logger) : IHealthCheck
 {
-    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context,
+        CancellationToken cancellationToken = default)
     {
         try
         {
             var result = await ProcessExecutor.ExecuteProcessAsync("mkvmerge", "--version", TimeSpan.FromSeconds(5));
 
-            if (result.ExitCode == 0)
-            {
-                return HealthCheckResult.Healthy();
-            }
+            if (result.ExitCode == 0) return HealthCheckResult.Healthy();
 
             return HealthCheckResult.Unhealthy($"mkvmerge exited with code {result.ExitCode}");
         }

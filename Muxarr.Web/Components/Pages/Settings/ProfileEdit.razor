@@ -24,8 +24,8 @@
     </h2>
 
     <EditForm Model="_profile">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
+        <DataAnnotationsValidator/>
+        <ValidationSummary/>
 
         <div class="row">
             <!-- Vertical nav -->
@@ -62,37 +62,42 @@
                         <h5 class="mb-3"><i class="bi bi-gear text-primary me-2"></i>General</h5>
                         <div class="mb-3">
                             <label for="profile-name" class="form-label">Profile Name</label>
-                            <InputText id="profile-name" class="form-control" @bind-Value="_profile.Name" />
+                            <InputText id="profile-name" class="form-control" @bind-Value="_profile.Name"/>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Monitored Directories</label>
-                            <DirectoryEditor @bind-Directories="_profile.Directories" />
-                            <small class="form-text text-muted">Directories to scan for media files using this profile.</small>
+                            <DirectoryEditor @bind-Directories="_profile.Directories"/>
+                            <small class="form-text text-muted">Directories to scan for media files using this
+                                profile.</small>
                         </div>
                         <div class="mb-3 form-check form-switch">
-                            <InputCheckbox id="skipHardlinked" class="form-check-input" @bind-Value="_profile.SkipHardlinkedFiles" />
+                            <InputCheckbox id="skipHardlinked" class="form-check-input"
+                                           @bind-Value="_profile.SkipHardlinkedFiles"/>
                             <label class="form-check-label" for="skipHardlinked">Skip hardlinked files</label>
-                            <small class="form-text text-muted d-block">Do not scan or process files that have more than one hard link.</small>
+                            <small class="form-text text-muted d-block">Do not scan or process files that have more than
+                                one hard link.</small>
                         </div>
                     }
                     else if (_tab == "video")
                     {
                         <h5 class="mb-3"><i class="bi bi-film text-primary me-2"></i>Video Settings</h5>
                         <div class="mb-3 form-check form-switch">
-                            <InputCheckbox id="clearVideoNames" class="form-check-input" @bind-Value="_profile.ClearVideoTrackNames" />
+                            <InputCheckbox id="clearVideoNames" class="form-check-input"
+                                           @bind-Value="_profile.ClearVideoTrackNames"/>
                             <label class="form-check-label" for="clearVideoNames">Clear video track names</label>
-                            <small class="form-text text-muted d-block">Remove release group branding and other junk from video track descriptions during conversion.</small>
+                            <small class="form-text text-muted d-block">Remove release group branding and other junk
+                                from video track descriptions during conversion.</small>
                         </div>
                     }
                     else if (_tab == "audio")
                     {
                         <h5 class="mb-3"><i class="bi bi-volume-up text-primary me-2"></i>Audio Settings</h5>
-                        <TrackSettingsEditor Settings="_profile.AudioSettings" TrackType="MediaTrackType.Audio" />
+                        <TrackSettingsEditor Settings="_profile.AudioSettings" TrackType="MediaTrackType.Audio"/>
                     }
                     else if (_tab == "subtitles")
                     {
                         <h5 class="mb-3"><i class="bi bi-chat-text text-primary me-2"></i>Subtitle Settings</h5>
-                        <TrackSettingsEditor Settings="_profile.SubtitleSettings" TrackType="MediaTrackType.Subtitles" />
+                        <TrackSettingsEditor Settings="_profile.SubtitleSettings" TrackType="MediaTrackType.Subtitles"/>
                     }
                 </div>
             </div>
@@ -142,12 +147,12 @@
 
     private async Task Save()
     {
-        await SaveProfile(scan: false);
+        await SaveProfile(false);
     }
 
     private async Task SaveAndScan()
     {
-        await SaveProfile(scan: true);
+        await SaveProfile(true);
     }
 
     private async Task SaveProfile(bool scan)
@@ -200,4 +205,5 @@
             NavigationManager.NavigateTo($"/settings/profile/{_profile.Id}", replace: true);
         }
     }
+
 }

@@ -28,7 +28,7 @@ else
             y = e.ClientY + 12;
         }
 
-        TooltipService.Show(Tip!, e.ClientX, y, flipped: y > elementTop);
+        TooltipService.Show(Tip!, e.ClientX, y, y > elementTop);
     }
 
     private void Hide()
@@ -40,4 +40,5 @@ else
     {
         TooltipService.Hide();
     }
+
 }

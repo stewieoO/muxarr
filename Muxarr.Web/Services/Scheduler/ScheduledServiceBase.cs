@@ -1,55 +1,70 @@
-using Microsoft.Extensions.Logging;
-
 namespace Muxarr.Web.Services.Scheduler;
 
 /// <summary>
-/// Base class for services that require mutually exclusive execution.
-/// Ensures that only one execution of the service can run at a time, while other calls
-/// wait for the current execution to complete. This is useful for scenarios where concurrent
-/// executions could cause conflicts, such as background tasks that can also be triggered manually.
+///     Base class for services that require mutually exclusive execution.
+///     Ensures that only one execution of the service can run at a time, while other calls
+///     wait for the current execution to complete. This is useful for scenarios where concurrent
+///     executions could cause conflicts, such as background tasks that can also be triggered manually.
 /// </summary>
-public abstract class ScheduledServiceBase(ILogger logger) : MutexServiceBase(logger), IScheduledService {
-    private DateTime _lastRun = DateTime.MinValue; // Always ensure a run on startup.
+public abstract class ScheduledServiceBase(ILogger logger) : MutexServiceBase(logger), IScheduledService
+{
     private bool _isRunning;
+    private DateTime _lastRun = DateTime.MinValue; // Always ensure a run on startup.
 
     public abstract TimeSpan Interval { get; }
 
-    public bool ShouldRun() {
+    public bool ShouldRun()
+    {
         return DateTime.UtcNow - _lastRun >= Interval;
     }
 
-    public bool IsRunning() {
+    public bool IsRunning()
+    {
         return _isRunning;
     }
 
-    public override async Task RunAsync(CancellationToken token) {
-        try {
+    public override async Task RunAsync(CancellationToken token)
+    {
+        try
+        {
             _lastRun = DateTime.UtcNow;
             _isRunning = true;
 
             // Use the base class mutex logic
             await base.RunAsync(token);
-        } finally {
+        }
+        finally
+        {
             _isRunning = false;
         }
     }
 }
 
-public abstract class MutexServiceBase<TParams>(ILogger logger) : IMutexService where TParams : class, new() {
+public abstract class MutexServiceBase<TParams>(ILogger logger) : IMutexService where TParams : class, new()
+{
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     protected readonly ILogger Logger = logger; // Make logger accessible to derived classes
 
-    public virtual Task RunAsync(CancellationToken token) => RunAsync(new TParams(), token);
+    public virtual Task RunAsync(CancellationToken token)
+    {
+        return RunAsync(new TParams(), token);
+    }
 
-    public async Task RunAsync(TParams parameters, CancellationToken token) {
-        try {
+    public async Task RunAsync(TParams parameters, CancellationToken token)
+    {
+        try
+        {
             Logger.LogDebug("Executing {ServiceName}", GetType().Name);
             await _semaphore.WaitAsync(token);
             await ExecuteAsync(parameters, token);
-        } catch (Exception ex) {
+        }
+        catch (Exception ex)
+        {
             Logger.LogError(ex, "Something bad happened while executing {ServiceName}",
                 GetType().Name);
-        } finally {
+        }
+        finally
+        {
             _semaphore.Release();
         }
     }
@@ -58,8 +73,12 @@ public abstract class MutexServiceBase<TParams>(ILogger logger) : IMutexService 
 }
 
 // For services that don't need parameters
-public abstract class MutexServiceBase(ILogger logger) : MutexServiceBase<EmptyParameters>(logger) {
-    protected sealed override Task ExecuteAsync(EmptyParameters parameters, CancellationToken token) => ExecuteAsync(token);
+public abstract class MutexServiceBase(ILogger logger) : MutexServiceBase<EmptyParameters>(logger)
+{
+    protected sealed override Task ExecuteAsync(EmptyParameters parameters, CancellationToken token)
+    {
+        return ExecuteAsync(token);
+    }
 
     protected abstract Task ExecuteAsync(CancellationToken token);
 }

@@ -1,6 +1,5 @@
 @page "/"
 @using Muxarr.Web.Components.Pages.Conversions
-@using Muxarr.Web.Components.Shared
 @inherits DisposableComponent
 @attribute [StreamRendering]
 
@@ -84,7 +83,8 @@
                             @_activeConversion.Name
                         </a>
                         <small class="text-muted">
-                            Started <TimeAgo DateTime="_activeConversion.CreatedDate"/>
+                            Started
+                            <TimeAgo DateTime="_activeConversion.CreatedDate"/>
                         </small>
                     </div>
                     <ConversionProgressBar Conversion="_activeConversion"/>
@@ -126,8 +126,12 @@
                                                     @conversion.Name
                                                 </a>
                                             </td>
-                                            <td><ConversionStateBadge Conversion="conversion"/></td>
-                                            <td><TimeAgo DateTime="conversion.CreatedDate"/></td>
+                                            <td>
+                                                <ConversionStateBadge Conversion="conversion"/>
+                                            </td>
+                                            <td>
+                                                <TimeAgo DateTime="conversion.CreatedDate"/>
+                                            </td>
                                             <td>
                                                 @if (conversion.State == ConversionState.Completed)
                                                 {
@@ -176,8 +180,12 @@
                                                     @file.GetName()
                                                 </a>
                                             </td>
-                                            <td><FileSize SizeInBytes="file.Size"/></td>
-                                            <td><TimeAgo DateTime="file.CreatedDate"/></td>
+                                            <td>
+                                                <FileSize SizeInBytes="file.Size"/>
+                                            </td>
+                                            <td>
+                                                <TimeAgo DateTime="file.CreatedDate"/>
+                                            </td>
                                         </tr>
                                     }
                                     </tbody>
@@ -306,4 +314,5 @@
         _disposed = true;
         MediaConverter.ConverterStateChanged -= OnConverterStateChanged;
     }
+
 }

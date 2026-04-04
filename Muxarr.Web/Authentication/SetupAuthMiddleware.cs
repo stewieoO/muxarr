@@ -16,7 +16,8 @@ public class SetupAuthMiddleware(RequestDelegate next)
 
         // Redirect authenticated cookie users away from login page
         if (path.StartsWith("/login", StringComparison.OrdinalIgnoreCase) &&
-            httpContext.User.Identity is { IsAuthenticated: true, AuthenticationType: CookieAuthenticationDefaults.AuthenticationScheme })
+            httpContext.User.Identity is
+                { IsAuthenticated: true, AuthenticationType: CookieAuthenticationDefaults.AuthenticationScheme })
         {
             httpContext.Response.Redirect("/");
             return;

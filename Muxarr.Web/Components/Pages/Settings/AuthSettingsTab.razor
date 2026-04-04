@@ -1,6 +1,5 @@
 @using Microsoft.AspNetCore.Identity
 @using Muxarr.Core.Config
-
 <p class="text-muted">Configure authentication and API access.</p>
 
 <div class="row g-4 mb-4">
@@ -8,7 +7,8 @@
         <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title"><i class="bi bi-person-lock me-2"></i>Login</h5>
-                <p class="text-muted small">When a username and password are set, login is required to access the web UI. Leave empty for open access.</p>
+                <p class="text-muted small">When a username and password are set, login is required to access the web
+                    UI. Leave empty for open access.</p>
 
                 @if (IsConfigured)
                 {
@@ -18,22 +18,22 @@
                 }
 
                 <EditForm Model="Model" OnValidSubmit="HandleSubmit">
-                    <DataAnnotationsValidator />
+                    <DataAnnotationsValidator/>
 
                     <div class="mb-3">
                         <label class="form-label">Username</label>
-                        <InputText class="form-control" @bind-Value="Model.Username" />
+                        <InputText class="form-control" @bind-Value="Model.Username"/>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">@(IsConfigured ? "New Password" : "Password")</label>
-                        <InputText type="password" class="form-control" @bind-Value="Model.Password" />
+                        <InputText type="password" class="form-control" @bind-Value="Model.Password"/>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Confirm Password</label>
-                        <InputText type="password" class="form-control" @bind-Value="Model.ConfirmPassword" />
+                        <InputText type="password" class="form-control" @bind-Value="Model.ConfirmPassword"/>
                     </div>
 
-                    <ValidationSummary />
+                    <ValidationSummary/>
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm">
@@ -55,11 +55,12 @@
         <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title"><i class="bi bi-key me-2"></i>API Key</h5>
-                <p class="text-muted small">Used to authenticate API and webhook requests. Pass via <code>X-Api-Key</code> header or <code>?apikey=</code> query parameter.</p>
+                <p class="text-muted small">Used to authenticate API and webhook requests. Pass via
+                    <code>X-Api-Key</code> header or <code>?apikey=</code> query parameter.</p>
 
                 <div class="mb-3">
                     <div class="input-group">
-                        <input type="text" class="form-control" value="@_apiKey" readonly />
+                        <input type="text" class="form-control" value="@_apiKey" readonly/>
                         <ToolTip Tip="Regenerate API key">
                             <button type="button" class="btn btn-outline-secondary" @onclick="RegenerateApiKey">
                                 <i class="bi bi-arrow-clockwise"></i>
@@ -199,4 +200,5 @@
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
     }
+
 }

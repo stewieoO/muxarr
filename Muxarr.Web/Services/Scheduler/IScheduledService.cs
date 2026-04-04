@@ -1,14 +1,16 @@
 namespace Muxarr.Web.Services.Scheduler;
 
 /// <summary>
-/// Interface defining a background service that can be scheduled
+///     Interface defining a background service that can be scheduled
 /// </summary>
-public interface IScheduledService : IMutexService {
+public interface IScheduledService : IMutexService
+{
     TimeSpan Interval { get; }
     bool ShouldRun();
     bool IsRunning();
 }
 
-public interface IMutexService {
+public interface IMutexService
+{
     Task RunAsync(CancellationToken token);
 }

@@ -1,4 +1,5 @@
 @page "/library"
+@using System.Reflection
 @using Microsoft.AspNetCore.WebUtilities
 @using Muxarr.Core.Config
 @inherits SelectablePaginatedListComponent<MediaFile>
@@ -24,7 +25,8 @@
                 <button @onclick="Refresh" class="btn btn-outline-primary" type="button">
                     <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                 </button>
-                <button @onclick="ForceRefresh" class="btn btn-outline-primary" type="button" title="Force rescan all files">
+                <button @onclick="ForceRefresh" class="btn btn-outline-primary" type="button"
+                        title="Force rescan all files">
                     <i class="bi bi-arrow-repeat me-1"></i>Force
                 </button>
             }
@@ -43,7 +45,8 @@
         @if (!string.IsNullOrEmpty(FileFilter) && TotalItems > 0)
         {
             <div class="col-auto">
-                <button @onclick="QueueAllFiltered" class="btn btn-outline-success btn-sm" type="button" disabled="@_isQueueing">
+                <button @onclick="QueueAllFiltered" class="btn btn-outline-success btn-sm" type="button"
+                        disabled="@_isQueueing">
                     @if (_isQueueing)
                     {
                         <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -81,31 +84,40 @@
     {
         <div class="row mb-3 g-2">
             <div class="col-auto">
-                <FilterDropdown Placeholder="Video Codec" @bind-Value="VideoCodecFilter" Items="_filterOptions?.VideoCodecs ?? []" />
+                <FilterDropdown Placeholder="Video Codec" @bind-Value="VideoCodecFilter"
+                                Items="_filterOptions?.VideoCodecs ?? []"/>
             </div>
             <div class="col-auto">
-                <FilterDropdown Placeholder="Audio Codec" @bind-Value="AudioCodecFilter" Items="_filterOptions?.AudioCodecs ?? []" />
+                <FilterDropdown Placeholder="Audio Codec" @bind-Value="AudioCodecFilter"
+                                Items="_filterOptions?.AudioCodecs ?? []"/>
             </div>
             <div class="col-auto">
-                <FilterDropdown Placeholder="Subtitle Codec" @bind-Value="SubtitleCodecFilter" Items="_filterOptions?.SubtitleCodecs ?? []" />
+                <FilterDropdown Placeholder="Subtitle Codec" @bind-Value="SubtitleCodecFilter"
+                                Items="_filterOptions?.SubtitleCodecs ?? []"/>
             </div>
             <div class="col-auto">
-                <FilterDropdown Placeholder="Resolution" @bind-Value="ResolutionFilter" Items="_filterOptions?.Resolutions ?? []" />
+                <FilterDropdown Placeholder="Resolution" @bind-Value="ResolutionFilter"
+                                Items="_filterOptions?.Resolutions ?? []"/>
             </div>
             <div class="col-auto">
-                <FilterDropdown Placeholder="Channel Layout" @bind-Value="ChannelLayoutFilter" Items="_filterOptions?.ChannelLayouts ?? []" />
+                <FilterDropdown Placeholder="Channel Layout" @bind-Value="ChannelLayoutFilter"
+                                Items="_filterOptions?.ChannelLayouts ?? []"/>
             </div>
             <div class="col-auto">
-                <FilterDropdown Placeholder="Audio Language" @bind-Value="AudioLanguageFilter" Items="_filterOptions?.AudioLanguages ?? []" />
+                <FilterDropdown Placeholder="Audio Language" @bind-Value="AudioLanguageFilter"
+                                Items="_filterOptions?.AudioLanguages ?? []"/>
             </div>
             <div class="col-auto">
-                <FilterDropdown Placeholder="Subtitle Language" @bind-Value="SubtitleLanguageFilter" Items="_filterOptions?.SubtitleLanguages ?? []" />
+                <FilterDropdown Placeholder="Subtitle Language" @bind-Value="SubtitleLanguageFilter"
+                                Items="_filterOptions?.SubtitleLanguages ?? []"/>
             </div>
             <div class="col-auto">
-                <FilterDropdown Placeholder="Container" @bind-Value="ContainerFilter" Items="_filterOptions?.Containers ?? []" />
+                <FilterDropdown Placeholder="Container" @bind-Value="ContainerFilter"
+                                Items="_filterOptions?.Containers ?? []"/>
             </div>
             <div class="col-auto">
-                <FilterDropdown Placeholder="Bit Depth" @bind-Value="BitDepthFilter" Items="_filterOptions?.VideoBitDepths ?? []" />
+                <FilterDropdown Placeholder="Bit Depth" @bind-Value="BitDepthFilter"
+                                Items="_filterOptions?.VideoBitDepths ?? []"/>
             </div>
         </div>
     }
@@ -179,74 +191,124 @@
 
     // Basic filter
     [Filter] private string _fileFilter = "";
+
     private string FileFilter
     {
         get => _fileFilter;
-        set { _fileFilter = value; _ = UpdateList(); }
+        set
+        {
+            _fileFilter = value;
+            _ = UpdateList();
+        }
     }
 
     // Advanced filters
     [Filter] private string _videoCodecFilter = "";
+
     private string VideoCodecFilter
     {
         get => _videoCodecFilter;
-        set { _videoCodecFilter = value; _ = UpdateList(); }
+        set
+        {
+            _videoCodecFilter = value;
+            _ = UpdateList();
+        }
     }
 
     [Filter] private string _audioCodecFilter = "";
+
     private string AudioCodecFilter
     {
         get => _audioCodecFilter;
-        set { _audioCodecFilter = value; _ = UpdateList(); }
+        set
+        {
+            _audioCodecFilter = value;
+            _ = UpdateList();
+        }
     }
 
     [Filter] private string _subtitleCodecFilter = "";
+
     private string SubtitleCodecFilter
     {
         get => _subtitleCodecFilter;
-        set { _subtitleCodecFilter = value; _ = UpdateList(); }
+        set
+        {
+            _subtitleCodecFilter = value;
+            _ = UpdateList();
+        }
     }
 
     [Filter] private string _resolutionFilter = "";
+
     private string ResolutionFilter
     {
         get => _resolutionFilter;
-        set { _resolutionFilter = value; _ = UpdateList(); }
+        set
+        {
+            _resolutionFilter = value;
+            _ = UpdateList();
+        }
     }
 
     [Filter] private string _channelLayoutFilter = "";
+
     private string ChannelLayoutFilter
     {
         get => _channelLayoutFilter;
-        set { _channelLayoutFilter = value; _ = UpdateList(); }
+        set
+        {
+            _channelLayoutFilter = value;
+            _ = UpdateList();
+        }
     }
 
     [Filter] private string _audioLanguageFilter = "";
+
     private string AudioLanguageFilter
     {
         get => _audioLanguageFilter;
-        set { _audioLanguageFilter = value; _ = UpdateList(); }
+        set
+        {
+            _audioLanguageFilter = value;
+            _ = UpdateList();
+        }
     }
 
     [Filter] private string _subtitleLanguageFilter = "";
+
     private string SubtitleLanguageFilter
     {
         get => _subtitleLanguageFilter;
-        set { _subtitleLanguageFilter = value; _ = UpdateList(); }
+        set
+        {
+            _subtitleLanguageFilter = value;
+            _ = UpdateList();
+        }
     }
 
     [Filter] private string _containerFilter = "";
+
     private string ContainerFilter
     {
         get => _containerFilter;
-        set { _containerFilter = value; _ = UpdateList(); }
+        set
+        {
+            _containerFilter = value;
+            _ = UpdateList();
+        }
     }
 
     [Filter] private string _bitDepthFilter = "";
+
     private string BitDepthFilter
     {
         get => _bitDepthFilter;
-        set { _bitDepthFilter = value; _ = UpdateList(); }
+        set
+        {
+            _bitDepthFilter = value;
+            _ = UpdateList();
+        }
     }
 
     private bool _showAdvanced;
@@ -304,7 +366,7 @@
         var type = GetType();
         foreach (var (_, fieldName) in QueryParamMap)
         {
-            type.GetField(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
                 ?.SetValue(this, "");
         }
 
@@ -312,7 +374,7 @@
         {
             if (query.TryGetValue(key, out var val) && !string.IsNullOrEmpty(val))
             {
-                type.GetField(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
                     ?.SetValue(this, (string)val!);
             }
         }
@@ -369,31 +431,31 @@
         if (!string.IsNullOrEmpty(_videoCodecFilter))
         {
             query = query.Where(f => f.Tracks.Any(t => t.Type == MediaTrackType.Video &&
-                t.Codec == _videoCodecFilter));
+                                                       t.Codec == _videoCodecFilter));
         }
 
         if (!string.IsNullOrEmpty(_audioCodecFilter))
         {
             query = query.Where(f => f.Tracks.Any(t => t.Type == MediaTrackType.Audio &&
-                t.Codec == _audioCodecFilter));
+                                                       t.Codec == _audioCodecFilter));
         }
 
         if (!string.IsNullOrEmpty(_subtitleCodecFilter))
         {
             query = query.Where(f => f.Tracks.Any(t => t.Type == MediaTrackType.Subtitles &&
-                t.Codec == _subtitleCodecFilter));
+                                                       t.Codec == _subtitleCodecFilter));
         }
 
         if (!string.IsNullOrEmpty(_audioLanguageFilter))
         {
             query = query.Where(f => f.Tracks.Any(t => t.Type == MediaTrackType.Audio &&
-                EF.Functions.Collate(t.LanguageName, "NOCASE") == _audioLanguageFilter));
+                                                       EF.Functions.Collate(t.LanguageName, "NOCASE") == _audioLanguageFilter));
         }
 
         if (!string.IsNullOrEmpty(_subtitleLanguageFilter))
         {
             query = query.Where(f => f.Tracks.Any(t => t.Type == MediaTrackType.Subtitles &&
-                EF.Functions.Collate(t.LanguageName, "NOCASE") == _subtitleLanguageFilter));
+                                                       EF.Functions.Collate(t.LanguageName, "NOCASE") == _subtitleLanguageFilter));
         }
 
         if (!string.IsNullOrEmpty(_channelLayoutFilter))
@@ -472,6 +534,7 @@
         {
             ToastService.ShowSuccess($"Added {queued} file(s) to the conversion queue.");
         }
+
         if (skipped > 0)
         {
             ToastService.ShowWarning($"{skipped} file(s) skipped — not accessible (mount may be offline).");
@@ -513,4 +576,5 @@
         MediaScanner.ScanningStateChanged -= OnScanningStateChanged;
         base.Dispose();
     }
+
 }

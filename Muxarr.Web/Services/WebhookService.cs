@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Muxarr.Core.Api.Models;
 using Muxarr.Core.Config;
 using Muxarr.Data;
+using Muxarr.Data.Entities;
 using Muxarr.Data.Extensions;
 using Muxarr.Web.Services.Scheduler;
 
@@ -14,9 +15,8 @@ public class WebhookService(
     MediaConverterService converter,
     ILogger<WebhookService> logger) : ScheduledServiceBase(logger)
 {
-    public override TimeSpan Interval => TimeSpan.FromSeconds(10);
-
     private readonly ConcurrentQueue<WebhookQueueItem> _queue = new();
+    public override TimeSpan Interval => TimeSpan.FromSeconds(10);
 
     public void Enqueue(WebhookFileItem item)
     {
@@ -31,45 +31,27 @@ public class WebhookService(
 
     protected override async Task ExecuteAsync(CancellationToken token)
     {
-        if (_queue.IsEmpty)
-        {
-            return;
-        }
+        if (_queue.IsEmpty) return;
 
         // Re-queue items that aren't ready yet
         var pending = new List<WebhookQueueItem>();
         var ready = new List<WebhookQueueItem>();
 
         while (_queue.TryDequeue(out var item))
-        {
             if (DateTime.UtcNow >= item.ProcessAfter)
-            {
                 ready.Add(item);
-            }
             else
-            {
                 pending.Add(item);
-            }
-        }
 
-        foreach (var item in pending)
-        {
-            _queue.Enqueue(item);
-        }
+        foreach (var item in pending) _queue.Enqueue(item);
 
-        if (ready.Count == 0)
-        {
-            return;
-        }
+        if (ready.Count == 0) return;
 
         using var scope = serviceScopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var config = context.Configs.GetOrDefault<WebhookConfig>();
 
-        foreach (var item in ready)
-        {
-            await ProcessFile(item, config, token);
-        }
+        foreach (var item in ready) await ProcessFile(item, config, token);
     }
 
     private async Task ProcessFile(WebhookQueueItem item, WebhookConfig config, CancellationToken token)
@@ -132,8 +114,8 @@ public class WebhookService(
             // Check if already queued or processing
             var alreadyQueued = await context.MediaConversions
                 .AnyAsync(x => x.MediaFileId == mediaFile.Id &&
-                               (x.State == Data.Entities.ConversionState.New ||
-                                x.State == Data.Entities.ConversionState.Processing), token);
+                               (x.State == ConversionState.New ||
+                                x.State == ConversionState.Processing), token);
 
             if (alreadyQueued)
             {

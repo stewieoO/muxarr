@@ -1,5 +1,3 @@
-@using Muxarr.Core.Language
-@using Muxarr.Data.Entities
 @using Muxarr.Web.Attributes
 @attribute [type: RenderModeInteractiveServer]
 
@@ -13,20 +11,22 @@
         var isDragOver = _dragOverIndex == index && _dragSourceIndex != index;
         var isOriginal = pref.IsOriginalLanguagePlaceholder;
 
-        <div class="lpe-item @(isDragOver ? "lpe-item-dragover" : "") @(_dragSourceIndex == index ? "lpe-item-dragging" : "") @(isOriginal ? "lpe-item-original" : "")"
-             draggable="true"
-             @ondragstart="() => OnDragStart(index)"
-             @ondragenter="() => OnDragEnter(index)"
-             @ondragover:preventDefault
-             @ondrop="() => OnDrop(index)"
-             @ondragend="OnDragEnd">
+        <div
+            class="lpe-item @(isDragOver ? "lpe-item-dragover" : "") @(_dragSourceIndex == index ? "lpe-item-dragging" : "") @(isOriginal ? "lpe-item-original" : "")"
+            draggable="true"
+            @ondragstart="() => OnDragStart(index)"
+            @ondragenter="() => OnDragEnter(index)"
+            @ondragover:preventDefault
+            @ondrop="() => OnDrop(index)"
+            @ondragend="OnDragEnd">
 
             <i class="bi bi-grip-vertical lpe-drag-handle"></i>
             <span class="lpe-priority-number">@(index + 1)</span>
 
             @if (isOriginal)
             {
-                <ToolTip Tip="Matches the language a movie or show was originally made in. Works like a wildcard - automatically picks the right language per file using data from Sonarr/Radarr.">
+                <ToolTip
+                    Tip="Matches the language a movie or show was originally made in. Works like a wildcard - automatically picks the right language per file using data from Sonarr/Radarr.">
                     <i class="bi bi-film lpe-original-icon"></i>
                 </ToolTip>
                 <span class="lpe-lang-name">Original Language</span>
@@ -81,7 +81,8 @@
                                 }
                                 else
                                 {
-                                    <text>Lossless + Spatial &gt; Lossless &gt; Lossy, most channels first. Commentary ranked lowest.</text>
+                                    <text>Lossless + Spatial &gt; Lossless &gt; Lossy, most channels first. Commentary
+                                        ranked lowest.</text>
                                 }
                             </small>
                         }
@@ -89,7 +90,8 @@
                     @if (IsAudio)
                     {
                         <div class="col-6">
-                            <ToolTip Tip="When limiting tracks, prefer highest quality (lossless, more channels) or smallest file size (lossy, fewer channels).">
+                            <ToolTip
+                                Tip="When limiting tracks, prefer highest quality (lossless, more channels) or smallest file size (lossy, fewer channels).">
                                 <label class="lpe-advanced-label">Quality preference</label>
                             </ToolTip>
                             <select class="form-select form-select-sm"
@@ -104,7 +106,8 @@
                 </div>
                 @if (pref.HasOverrides)
                 {
-                    <button type="button" class="btn btn-link btn-sm text-muted p-0 mt-2" @onclick="() => ClearOverrides(pref)">
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0 mt-2"
+                            @onclick="() => ClearOverrides(pref)">
                         <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to defaults
                     </button>
                 }
@@ -123,7 +126,8 @@
         </div>
         @if (!HasOriginalLanguage)
         {
-            <ToolTip Tip="Matches the language a movie or show was originally made in. Works like a wildcard - automatically picks the right language per file using data from Sonarr/Radarr.">
+            <ToolTip
+                Tip="Matches the language a movie or show was originally made in. Works like a wildcard - automatically picks the right language per file using data from Sonarr/Radarr.">
                 <button type="button" class="btn btn-link btn-sm text-muted p-0" @onclick="AddOriginalLanguage">
                     <i class="bi bi-film me-1"></i>Add original language
                 </button>
@@ -133,7 +137,7 @@
 </div>
 
 @code {
-    [Parameter, EditorRequired] public required List<LanguagePreference> Languages { get; set; }
+    [Parameter][EditorRequired] public required List<LanguagePreference> Languages { get; set; }
     [Parameter] public MediaTrackType TrackType { get; set; }
 
     private bool IsAudio => TrackType == MediaTrackType.Audio;
@@ -243,4 +247,5 @@
         pref.MaxTracks = null;
         pref.QualityStrategy = null;
     }
+
 }

@@ -28,7 +28,7 @@ public static class LoggingConfiguration
             .WriteTo.Sink(dbSink);
 
         Log.Logger = logConfig.CreateLogger();
-        builder.Logging.AddSerilog(Log.Logger, dispose: true);
+        builder.Logging.AddSerilog(Log.Logger, true);
 
         // Register the sink instance so LogWriterService can drain it
         builder.Services.AddSingleton(dbSink);
@@ -39,9 +39,10 @@ public static class LoggingConfiguration
     }
 
     /// <summary>
-    /// Runs the application with robust error handling, ensuring any startup exceptions are logged.
+    ///     Runs the application with robust error handling, ensuring any startup exceptions are logged.
     /// </summary>
-    public static async Task RunWithLoggingAsync(this WebApplicationBuilder builder, Func<WebApplicationBuilder, Task> configure)
+    public static async Task RunWithLoggingAsync(this WebApplicationBuilder builder,
+        Func<WebApplicationBuilder, Task> configure)
     {
         try
         {

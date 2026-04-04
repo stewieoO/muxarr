@@ -1,165 +1,165 @@
-@using Muxarr.Core.Language
-@using Muxarr.Data.Entities
-@using Muxarr.Data.Extensions
 @using Muxarr.Web.Components.Pages.Library
-
 <div class="modal-body">
-        <p class="mb-3 text-body-secondary">Select which tracks to keep, reorder them, and edit their metadata. At least one audio track is required.</p>
+    <p class="mb-3 text-body-secondary">Select which tracks to keep, reorder them, and edit their metadata. At least one
+        audio track is required.</p>
 
-        @if (_validationError)
-        {
-            <div class="alert alert-danger py-2">
-                <i class="bi bi-exclamation-triangle me-2"></i>At least one audio track must be selected.
-            </div>
-        }
-
-        <table class="table table-sm align-middle mb-0">
-            <thead>
-                <tr>
-                    <th style="width: 52px;"></th>
-                    <th style="width: 40px;"></th>
-                    <th>Language</th>
-                    <th>Format</th>
-                    <th>Track Name</th>
-                    <th>Flags</th>
-                </tr>
-            </thead>
-            <tbody>
-                @{ MediaTrackType? lastType = null; }
-                @foreach (var track in _editableTracks)
-                {
-                    if (track.Type != lastType)
-                    {
-                        lastType = track.Type;
-                        <tr>
-                            <td colspan="6" class="fw-semibold text-body-secondary small py-1">
-                                <i class="bi @GetGroupIcon(track.Type) me-1"></i>@GetGroupLabel(track.Type)
-                            </td>
-                        </tr>
-                    }
-                    var isVideo = track.Type == MediaTrackType.Video;
-                    var isChecked = _selectedTrackIds.Contains(track.TrackNumber);
-                    <tr class="@(!isChecked && !isVideo ? "opacity-50" : "")">
-                            <td class="text-center pe-0">
-                                @if (!isVideo)
-                                {
-                                    <ToolTip Tip="Move up">
-                                        <button type="button" class="btn btn-link btn-sm text-muted p-0 me-1"
-                                                disabled="@(!CanMoveUp(track))" @onclick="() => MoveTrack(track, -1)">
-                                            <i class="bi bi-chevron-up" style="font-size: 0.7rem;"></i>
-                                        </button>
-                                    </ToolTip>
-                                    <ToolTip Tip="Move down">
-                                        <button type="button" class="btn btn-link btn-sm text-muted p-0"
-                                                disabled="@(!CanMoveDown(track))" @onclick="() => MoveTrack(track, 1)">
-                                            <i class="bi bi-chevron-down" style="font-size: 0.7rem;"></i>
-                                        </button>
-                                    </ToolTip>
-                                }
-                            </td>
-                            <td>
-                                <input type="checkbox"
-                                       class="form-check-input"
-                                       checked="@isChecked"
-                                       disabled="@isVideo"
-                                       @onchange="() => ToggleTrack(track)"/>
-                            </td>
-                            <td>
-                                @if (!isVideo)
-                                {
-                                    <select class="form-select form-select-sm"
-                                            value="@track.LanguageName"
-                                            @onchange="e => OnLanguageChanged(track, e.Value?.ToString())">
-                                        @foreach (var lang in _languages)
-                                        {
-                                            <option value="@lang.Name">@lang.Name</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <MediaTrackLabel Track="track"/>
-                                }
-                            </td>
-                            <td>
-                                <code>@track.Codec.FormatCodec()</code>
-                            </td>
-                            <td>
-                                <input type="text"
-                                       class="form-control form-control-sm"
-                                       placeholder="(none)"
-                                       value="@track.TrackName"
-                                       @onchange="e => track.TrackName = e.Value?.ToString()"/>
-                            </td>
-                            <td>
-                                @if (!isVideo)
-                                {
-                                    <div class="d-flex gap-1">
-                                        <ToolTip Tip="Default - Player will auto-select this track during playback">
-                                            <button type="button"
-                                                    class="btn btn-sm @(track.IsDefault ? "btn-primary" : "btn-outline-secondary")"
-                                                    @onclick="() => track.IsDefault = !track.IsDefault">
-                                                <i class="bi bi-play-circle"></i>
-                                            </button>
-                                        </ToolTip>
-                                        @if (track.Type == MediaTrackType.Subtitles)
-                                        {
-                                            <ToolTip Tip="Hearing Impaired (SDH) - Includes sound descriptions for deaf/hard of hearing viewers">
-                                                <button type="button"
-                                                        class="btn btn-sm @(track.IsHearingImpaired ? "btn-primary" : "btn-outline-secondary")"
-                                                        @onclick="() => track.IsHearingImpaired = !track.IsHearingImpaired">
-                                                    <i class="bi bi-ear"></i>
-                                                </button>
-                                            </ToolTip>
-                                            <ToolTip Tip="Forced - Shows even when subtitles are off. Used for foreign dialogue in otherwise native-language films.">
-                                                <button type="button"
-                                                        class="btn btn-sm @(track.IsForced ? "btn-primary" : "btn-outline-secondary")"
-                                                        @onclick="() => track.IsForced = !track.IsForced">
-                                                    <i class="bi bi-lock"></i>
-                                                </button>
-                                            </ToolTip>
-                                        }
-                                        <ToolTip Tip="Commentary - Director/crew commentary track">
-                                            <button type="button"
-                                                    class="btn btn-sm @(track.IsCommentary ? "btn-primary" : "btn-outline-secondary")"
-                                                    @onclick="() => track.IsCommentary = !track.IsCommentary">
-                                                <i class="bi bi-chat-quote"></i>
-                                            </button>
-                                        </ToolTip>
-                                    </div>
-                                }
-                            </td>
-                        </tr>
-                }
-            </tbody>
-        </table>
-
-        <div class="d-flex justify-content-between mt-3">
-            <div class="d-flex align-items-center gap-2">
-                @if (Profiles.Count > 0)
-                {
-                    <select class="form-select form-select-sm" style="width: auto;"
-                            value="@_selectedProfileId"
-                            @onchange="OnProfileSelected">
-                        @foreach (var p in Profiles)
-                        {
-                            <option value="@p.Id">@p.Name</option>
-                        }
-                    </select>
-                    <ToolTip Tip="Apply settings from the selected profile">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ApplyProfileTemplate">
-                            <i class="bi bi-magic me-2"></i>Apply Profile
-                        </button>
-                    </ToolTip>
-                }
-            </div>
-            <div class="d-flex gap-2">
-                <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
-                <button class="btn btn-primary" @onclick="Confirm">
-                    <i class="bi bi-check-lg me-2"></i>Add to Queue
-                </button>
-            </div>
+    @if (_validationError)
+    {
+        <div class="alert alert-danger py-2">
+            <i class="bi bi-exclamation-triangle me-2"></i>At least one audio track must be selected.
         </div>
+    }
+
+    <table class="table table-sm align-middle mb-0">
+        <thead>
+        <tr>
+            <th style="width: 52px;"></th>
+            <th style="width: 40px;"></th>
+            <th>Language</th>
+            <th>Format</th>
+            <th>Track Name</th>
+            <th>Flags</th>
+        </tr>
+        </thead>
+        <tbody>
+        @{ MediaTrackType? lastType = null; }
+        @foreach (var track in _editableTracks)
+        {
+            if (track.Type != lastType)
+            {
+                lastType = track.Type;
+                <tr>
+                    <td colspan="6" class="fw-semibold text-body-secondary small py-1">
+                        <i class="bi @GetGroupIcon(track.Type) me-1"></i>@GetGroupLabel(track.Type)
+                    </td>
+                </tr>
+            }
+
+            var isVideo = track.Type == MediaTrackType.Video;
+            var isChecked = _selectedTrackIds.Contains(track.TrackNumber);
+            <tr class="@(!isChecked && !isVideo ? "opacity-50" : "")">
+                <td class="text-center pe-0">
+                    @if (!isVideo)
+                    {
+                        <ToolTip Tip="Move up">
+                            <button type="button" class="btn btn-link btn-sm text-muted p-0 me-1"
+                                    disabled="@(!CanMoveUp(track))" @onclick="() => MoveTrack(track, -1)">
+                                <i class="bi bi-chevron-up" style="font-size: 0.7rem;"></i>
+                            </button>
+                        </ToolTip>
+                        <ToolTip Tip="Move down">
+                            <button type="button" class="btn btn-link btn-sm text-muted p-0"
+                                    disabled="@(!CanMoveDown(track))" @onclick="() => MoveTrack(track, 1)">
+                                <i class="bi bi-chevron-down" style="font-size: 0.7rem;"></i>
+                            </button>
+                        </ToolTip>
+                    }
+                </td>
+                <td>
+                    <input type="checkbox"
+                           class="form-check-input"
+                           checked="@isChecked"
+                           disabled="@isVideo"
+                           @onchange="() => ToggleTrack(track)"/>
+                </td>
+                <td>
+                    @if (!isVideo)
+                    {
+                        <select class="form-select form-select-sm"
+                                value="@track.LanguageName"
+                                @onchange="e => OnLanguageChanged(track, e.Value?.ToString())">
+                            @foreach (var lang in _languages)
+                            {
+                                <option value="@lang.Name">@lang.Name</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <MediaTrackLabel Track="track"/>
+                    }
+                </td>
+                <td>
+                    <code>@track.Codec.FormatCodec()</code>
+                </td>
+                <td>
+                    <input type="text"
+                           class="form-control form-control-sm"
+                           placeholder="(none)"
+                           value="@track.TrackName"
+                           @onchange="e => track.TrackName = e.Value?.ToString()"/>
+                </td>
+                <td>
+                    @if (!isVideo)
+                    {
+                        <div class="d-flex gap-1">
+                            <ToolTip Tip="Default - Player will auto-select this track during playback">
+                                <button type="button"
+                                        class="btn btn-sm @(track.IsDefault ? "btn-primary" : "btn-outline-secondary")"
+                                        @onclick="() => track.IsDefault = !track.IsDefault">
+                                    <i class="bi bi-play-circle"></i>
+                                </button>
+                            </ToolTip>
+                            @if (track.Type == MediaTrackType.Subtitles)
+                            {
+                                <ToolTip
+                                    Tip="Hearing Impaired (SDH) - Includes sound descriptions for deaf/hard of hearing viewers">
+                                    <button type="button"
+                                            class="btn btn-sm @(track.IsHearingImpaired ? "btn-primary" : "btn-outline-secondary")"
+                                            @onclick="() => track.IsHearingImpaired = !track.IsHearingImpaired">
+                                        <i class="bi bi-ear"></i>
+                                    </button>
+                                </ToolTip>
+                                <ToolTip
+                                    Tip="Forced - Shows even when subtitles are off. Used for foreign dialogue in otherwise native-language films.">
+                                    <button type="button"
+                                            class="btn btn-sm @(track.IsForced ? "btn-primary" : "btn-outline-secondary")"
+                                            @onclick="() => track.IsForced = !track.IsForced">
+                                        <i class="bi bi-lock"></i>
+                                    </button>
+                                </ToolTip>
+                            }
+                            <ToolTip Tip="Commentary - Director/crew commentary track">
+                                <button type="button"
+                                        class="btn btn-sm @(track.IsCommentary ? "btn-primary" : "btn-outline-secondary")"
+                                        @onclick="() => track.IsCommentary = !track.IsCommentary">
+                                    <i class="bi bi-chat-quote"></i>
+                                </button>
+                            </ToolTip>
+                        </div>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <div class="d-flex justify-content-between mt-3">
+        <div class="d-flex align-items-center gap-2">
+            @if (Profiles.Count > 0)
+            {
+                <select class="form-select form-select-sm" style="width: auto;"
+                        value="@_selectedProfileId"
+                        @onchange="OnProfileSelected">
+                    @foreach (var p in Profiles)
+                    {
+                        <option value="@p.Id">@p.Name</option>
+                    }
+                </select>
+                <ToolTip Tip="Apply settings from the selected profile">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ApplyProfileTemplate">
+                        <i class="bi bi-magic me-2"></i>Apply Profile
+                    </button>
+                </ToolTip>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+            <button class="btn btn-primary" @onclick="Confirm">
+                <i class="bi bi-check-lg me-2"></i>Add to Queue
+            </button>
+        </div>
+    </div>
 </div>
 
 @code {
@@ -302,7 +302,10 @@
         _editableTracks.Insert(newIndex, track);
     }
 
-    private async Task Cancel() => await BlazoredModal.CloseAsync(ModalResult.Cancel());
+    private async Task Cancel()
+    {
+        await BlazoredModal.CloseAsync(ModalResult.Cancel());
+    }
 
     private async Task Confirm()
     {
@@ -317,19 +320,26 @@
         await BlazoredModal.CloseAsync(ModalResult.Ok(selectedTracks));
     }
 
-    private static string GetGroupIcon(MediaTrackType type) => type switch
+    private static string GetGroupIcon(MediaTrackType type)
     {
-        MediaTrackType.Video => "bi-camera-video",
-        MediaTrackType.Audio => "bi-volume-up",
-        MediaTrackType.Subtitles => "bi-badge-cc",
-        _ => "bi-question-circle"
-    };
+        return type switch
+        {
+            MediaTrackType.Video => "bi-camera-video",
+            MediaTrackType.Audio => "bi-volume-up",
+            MediaTrackType.Subtitles => "bi-badge-cc",
+            _ => "bi-question-circle"
+        };
+    }
 
-    private static string GetGroupLabel(MediaTrackType type) => type switch
+    private static string GetGroupLabel(MediaTrackType type)
     {
-        MediaTrackType.Video => "Video",
-        MediaTrackType.Audio => "Audio",
-        MediaTrackType.Subtitles => "Subtitles",
-        _ => "Other"
-    };
+        return type switch
+        {
+            MediaTrackType.Video => "Video",
+            MediaTrackType.Audio => "Audio",
+            MediaTrackType.Subtitles => "Subtitles",
+            _ => "Other"
+        };
+    }
+
 }

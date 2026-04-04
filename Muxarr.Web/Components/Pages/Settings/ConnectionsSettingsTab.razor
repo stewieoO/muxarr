@@ -1,15 +1,14 @@
-@using Muxarr.Core.Api
 @using Muxarr.Core.Config
-
-<p class="text-muted">Connect Muxarr to Sonarr and Radarr for original language detection and automatic file processing.</p>
+<p class="text-muted">Connect Muxarr to Sonarr and Radarr for original language detection and automatic file
+    processing.</p>
 
 <EditForm Model="ArrConfigs" OnValidSubmit="HandleSubmit">
-    <DataAnnotationsValidator />
+    <DataAnnotationsValidator/>
 
     <div class="border rounded p-4 mb-4">
         <h5 class="mb-3"><i class="bi bi-link-45deg me-2"></i>Muxarr URL</h5>
         <div class="mb-0">
-            <InputText class="form-control" @bind-Value="WebhookConfig.MuxarrUrl" />
+            <InputText class="form-control" @bind-Value="WebhookConfig.MuxarrUrl"/>
             <small class="form-text text-muted">
                 The URL that Sonarr/Radarr can reach Muxarr at. Example: <code>http://muxarr:8183</code>
             </small>
@@ -21,13 +20,13 @@
             <ArrServiceCard Name="Sonarr" Config="@ArrConfigs.Sonarr"
                             ConfigKey="@ArrConfig.SonarrKey"
                             GetWebhookUrl="@(() => WebhookUrl)"
-                            AutoSave="@SaveSettingsSilent" />
+                            AutoSave="@SaveSettingsSilent"/>
         </div>
         <div class="col-lg-6">
             <ArrServiceCard Name="Radarr" Config="@ArrConfigs.Radarr"
                             ConfigKey="@ArrConfig.RadarrKey"
                             GetWebhookUrl="@(() => WebhookUrl)"
-                            AutoSave="@SaveSettingsSilent" />
+                            AutoSave="@SaveSettingsSilent"/>
         </div>
     </div>
 
@@ -42,7 +41,8 @@
         </ol>
         @if (!string.IsNullOrEmpty(WebhookConfig.ApiKey))
         {
-            <p class="text-muted small"><i class="bi bi-shield-lock me-1"></i>The API key is included in the URL above as a query parameter.</p>
+            <p class="text-muted small"><i class="bi bi-shield-lock me-1"></i>The API key is included in the URL above
+                as a query parameter.</p>
         }
     </div>
 
@@ -57,7 +57,7 @@
     [Inject] public required IDbContextFactory<AppDbContext> ContextFactory { get; set; }
     [Inject] public required IToastService ToastService { get; set; }
 
-    private ArrConfigs ArrConfigs { get; set; } = new();
+    private ArrConfigs ArrConfigs { get; } = new();
     private WebhookConfig WebhookConfig { get; set; } = new();
 
     private string WebhookUrl
@@ -88,9 +88,15 @@
         WebhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
     }
 
-    private Task HandleSubmit() => SaveSettings(showToast: true);
+    private Task HandleSubmit()
+    {
+        return SaveSettings(true);
+    }
 
-    private Task SaveSettingsSilent() => SaveSettings(showToast: false);
+    private Task SaveSettingsSilent()
+    {
+        return SaveSettings(false);
+    }
 
     private async Task SaveSettings(bool showToast)
     {
@@ -117,4 +123,5 @@
             ToastService.ShowError($"Failed to save settings: {ex.Message}");
         }
     }
+
 }

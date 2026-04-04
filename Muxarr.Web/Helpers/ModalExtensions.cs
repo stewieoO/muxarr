@@ -1,6 +1,5 @@
 using Blazored.Modal;
 using Blazored.Modal.Services;
-using Microsoft.AspNetCore.Components;
 using Muxarr.Data.Entities;
 using Muxarr.Web.Components.Shared.Modals;
 
@@ -51,10 +50,7 @@ public static class ModalExtensions
         var result = modal.Show<CustomConversionModal>("Custom Conversion", parameters, options);
         var modalResult = await result.Result;
 
-        if (modalResult.Cancelled)
-        {
-            return null;
-        }
+        if (modalResult.Cancelled) return null;
 
         return (List<TrackSnapshot>?)modalResult.Data;
     }

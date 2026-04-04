@@ -63,8 +63,11 @@
                 {
                     <tr class="@GetRowClass(entry.Level)">
                         <td class="text-nowrap small">@entry.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                        <td><LogLevelBadge Level="@entry.Level"/></td>
-                        <td class="small text-truncate" style="max-width: 200px" title="@entry.Source">@entry.Source</td>
+                        <td>
+                            <LogLevelBadge Level="@entry.Level"/>
+                        </td>
+                        <td class="small text-truncate" style="max-width: 200px"
+                            title="@entry.Source">@entry.Source</td>
                         <td>
                             <span class="small">@entry.Message</span>
                             @if (!string.IsNullOrEmpty(entry.Exception))
@@ -105,8 +108,7 @@
     [Inject] public required IToastService ToastService { get; set; }
     [Inject] public required IModalService ModalService { get; set; }
 
-    [Filter]
-    private string _levelFilter = "All";
+    [Filter] private string _levelFilter = "All";
 
     private readonly string[] _levelOptions = ["All", "INF", "WRN", "ERR", "DBG"];
     private readonly HashSet<int> _expandedExceptions = new();
@@ -174,10 +176,14 @@
         }
     }
 
-    private static string GetRowClass(string level) => level switch
+    private static string GetRowClass(string level)
     {
-        "ERR" or "FTL" => "table-danger",
-        "WRN" => "table-warning",
-        _ => ""
-    };
+        return level switch
+        {
+            "ERR" or "FTL" => "table-danger",
+            "WRN" => "table-warning",
+            _ => ""
+        };
+    }
+
 }

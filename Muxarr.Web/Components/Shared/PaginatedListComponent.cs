@@ -7,53 +7,69 @@ namespace Muxarr.Web.Components.Shared;
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class FilterAttribute : Attribute;
 
-public abstract class PaginatedListComponentBase : AuthStateComponent {
-    [Inject]
-    public required IMemoryCache Cache { get; set; }
-    [Filter]
-    public int Page { get; set; } = 1;
-    [Filter]
-    public string SearchTerm { get; set; } = string.Empty;
+public abstract class PaginatedListComponentBase : AuthStateComponent
+{
+    private Dictionary<MemberInfo, object?>? _filterProperties;
+
+    [Inject] public required IMemoryCache Cache { get; set; }
+
+    [Filter] public int Page { get; set; } = 1;
+
+    [Filter] public string SearchTerm { get; set; } = string.Empty;
+
     public int TotalItems { get; set; }
     public int TotalPages { get; set; }
-    [Filter]
-    public string? CurrentSortProperty { get; set; } = "Id";
-    [Filter]
-    public bool? IsAscending { get; set; }
-    [Filter]
-    public int PageSize { get; set; } = 50;
+
+    [Filter] public string? CurrentSortProperty { get; set; } = "Id";
+
+    [Filter] public bool? IsAscending { get; set; }
+
+    [Filter] public int PageSize { get; set; } = 50;
+
     public bool IsLoading { get; set; }
 
-    public async Task ChangePageSize(int pageSize) {
+    // Filter methods / properties
+    public string CacheKey { get; set; } = string.Empty;
+    public bool HasActiveFilters { get; set; }
+
+    public async Task ChangePageSize(int pageSize)
+    {
         PageSize = pageSize;
         Page = 1;
         await UpdateList();
     }
 
-    public async Task ChangePage(int newPage) {
+    public async Task ChangePage(int newPage)
+    {
         Page = newPage;
         await UpdateList();
     }
 
-    public async Task Search(string term) {
+    public async Task Search(string term)
+    {
         SearchTerm = term;
         Page = 1;
         await UpdateList();
     }
 
-    public async Task HandleSort(string sortProperty) {
+    public async Task HandleSort(string sortProperty)
+    {
         CurrentSortProperty = sortProperty;
         await UpdateList();
     }
 
-    protected virtual async Task UpdateList() {
+    protected virtual async Task UpdateList()
+    {
         IsLoading = true;
         await InvokeStateHasChanged();
 
-        try {
-            await UpdateListCore(); 
+        try
+        {
+            await UpdateListCore();
             SaveFilters();
-        } finally {
+        }
+        finally
+        {
             IsLoading = false;
             await InvokeStateHasChanged();
         }
@@ -61,19 +77,14 @@ public abstract class PaginatedListComponentBase : AuthStateComponent {
 
     protected abstract Task UpdateListCore();
 
-    // Filter methods / properties
-    public string CacheKey { get; set; } = string.Empty;
-    public bool HasActiveFilters { get; set; }
-    private Dictionary<MemberInfo, object?>? _filterProperties;
-
-    private string GetCacheKey() {
+    private string GetCacheKey()
+    {
         return GetType().Name + CacheKey;
     }
 
-    private void LoadDefaults() {
-        if (_filterProperties != null) {
-            return;
-        }
+    private void LoadDefaults()
+    {
+        if (_filterProperties != null) return;
 
         var props = GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
             .Where(f => f.GetCustomAttribute<FilterAttribute>() != null)
@@ -84,43 +95,35 @@ public abstract class PaginatedListComponentBase : AuthStateComponent {
 
         _filterProperties = new Dictionary<MemberInfo, object?>();
 
-        foreach (var property in props) {
-            _filterProperties[property] = GetValue(property);
-        }
+        foreach (var property in props) _filterProperties[property] = GetValue(property);
     }
 
-    private object? GetValue(MemberInfo member) {
-        if (member is PropertyInfo property) {
-            return property.GetValue(this);
-        }
-        if (member is FieldInfo field) {
-            return field.GetValue(this);
-        }
+    private object? GetValue(MemberInfo member)
+    {
+        if (member is PropertyInfo property) return property.GetValue(this);
+        if (member is FieldInfo field) return field.GetValue(this);
         return null;
     }
 
-    private void SetValue(MemberInfo member, object? value) {
-        if (member is PropertyInfo property) {
+    private void SetValue(MemberInfo member, object? value)
+    {
+        if (member is PropertyInfo property)
             property.SetValue(this, value);
-        } else if (member is FieldInfo field) {
-            field.SetValue(this, value);
-        }
+        else if (member is FieldInfo field) field.SetValue(this, value);
     }
 
-    public void SaveFilters() {
+    public void SaveFilters()
+    {
         // Don't save when defaults are never loaded.
-        if (_filterProperties == null) {
-            return;
-        }
+        if (_filterProperties == null) return;
         var state = new Dictionary<string, object?>();
         var hasActiveFilters = false;
-        foreach (var property in _filterProperties!) {
+        foreach (var property in _filterProperties!)
+        {
             var value = GetValue(property.Key);
             state[property.Key.Name] = value;
 
-            if (value?.ToString() != property.Value?.ToString()) {
-                hasActiveFilters = true;
-            }
+            if (value?.ToString() != property.Value?.ToString()) hasActiveFilters = true;
         }
 
         var cacheKey = GetCacheKey();
@@ -128,26 +131,25 @@ public abstract class PaginatedListComponentBase : AuthStateComponent {
         HasActiveFilters = hasActiveFilters;
     }
 
-    public async Task LoadFilters(bool reset = false) {
+    public async Task LoadFilters(bool reset = false)
+    {
         LoadDefaults();
         var cacheKey = GetCacheKey();
 
-        if (reset) {
-            Cache.Remove(cacheKey);
-        }
+        if (reset) Cache.Remove(cacheKey);
 
         var state = Cache.Get<Dictionary<string, object?>>(cacheKey);
-        foreach (var (property, defaultValue) in _filterProperties!) {
+        foreach (var (property, defaultValue) in _filterProperties!)
+        {
             var currentValue = GetValue(property);
 
-            if (state != null && state.TryGetValue(property.Name, out var value)) {
-                if (currentValue != value) {
-                    SetValue(property, value);
-                }
-            } else {
-                if (currentValue != defaultValue) {
-                    SetValue(property, defaultValue); // The default value.
-                }
+            if (state != null && state.TryGetValue(property.Name, out var value))
+            {
+                if (currentValue != value) SetValue(property, value);
+            }
+            else
+            {
+                if (currentValue != defaultValue) SetValue(property, defaultValue); // The default value.
             }
         }
 
@@ -155,11 +157,12 @@ public abstract class PaginatedListComponentBase : AuthStateComponent {
     }
 }
 
-public abstract class PaginatedListComponent<T> : PaginatedListComponentBase {
-    public List<T> Items { get; set; } = new();
-
+public abstract class PaginatedListComponent<T> : PaginatedListComponentBase
+{
     protected PaginatedListComponent()
     {
         CacheKey = typeof(T).Name;
     }
+
+    public List<T> Items { get; set; } = new();
 }

@@ -1,7 +1,5 @@
 @page "/statistics"
 @using Muxarr.Core.Config
-@using Muxarr.Core.Extensions
-@using Muxarr.Web.Components.Shared
 @attribute [StreamRendering]
 
 <PageTitle>@TitleHelper.GetTitle("Statistics")</PageTitle>
@@ -15,7 +13,7 @@
             @if (_stats != null)
             {
                 <span class="btn btn-outline-secondary disabled">
-                    Updated <TimeAgo DateTime="_stats.ComputedAtUtc" />
+                    Updated <TimeAgo DateTime="_stats.ComputedAtUtc"/>
                 </span>
             }
             <button class="btn btn-outline-primary" @onclick="RefreshStats" disabled="@_refreshing">
@@ -88,31 +86,40 @@
         @* Distribution Charts *@
         <div class="row g-4 mb-4">
             <div class="col-xl-4 col-md-6">
-                <DistributionCard Title="Audio Languages" Icon="bi-translate" Items="_stats.AudioLanguages" OnItemClick="@(v => NavigateToFilter("audioLanguage", v))" />
+                <DistributionCard Title="Audio Languages" Icon="bi-translate" Items="_stats.AudioLanguages"
+                                  OnItemClick="@(v => NavigateToFilter("audioLanguage", v))"/>
             </div>
             <div class="col-xl-4 col-md-6">
-                <DistributionCard Title="Subtitle Languages" Icon="bi-badge-cc" Items="_stats.SubtitleLanguages" OnItemClick="@(v => NavigateToFilter("subtitleLanguage", v))" />
+                <DistributionCard Title="Subtitle Languages" Icon="bi-badge-cc" Items="_stats.SubtitleLanguages"
+                                  OnItemClick="@(v => NavigateToFilter("subtitleLanguage", v))"/>
             </div>
             <div class="col-xl-4 col-md-6">
-                <DistributionCard Title="Video Codecs" Icon="bi-camera-video" Items="_stats.VideoCodecs" OnItemClick="@(v => NavigateToFilter("videoCodec", v))" />
+                <DistributionCard Title="Video Codecs" Icon="bi-camera-video" Items="_stats.VideoCodecs"
+                                  OnItemClick="@(v => NavigateToFilter("videoCodec", v))"/>
             </div>
             <div class="col-xl-4 col-md-6">
-                <DistributionCard Title="Resolutions" Icon="bi-aspect-ratio" Items="_stats.Resolutions" OnItemClick="@(v => NavigateToFilter("resolution", v))" />
+                <DistributionCard Title="Resolutions" Icon="bi-aspect-ratio" Items="_stats.Resolutions"
+                                  OnItemClick="@(v => NavigateToFilter("resolution", v))"/>
             </div>
             <div class="col-xl-4 col-md-6">
-                <DistributionCard Title="Audio Codecs" Icon="bi-volume-up" Items="_stats.AudioCodecs" OnItemClick="@(v => NavigateToFilter("audioCodec", v))" />
+                <DistributionCard Title="Audio Codecs" Icon="bi-volume-up" Items="_stats.AudioCodecs"
+                                  OnItemClick="@(v => NavigateToFilter("audioCodec", v))"/>
             </div>
             <div class="col-xl-4 col-md-6">
-                <DistributionCard Title="Subtitle Codecs" Icon="bi-badge-cc" Items="_stats.SubtitleCodecs" OnItemClick="@(v => NavigateToFilter("subtitleCodec", v))" />
+                <DistributionCard Title="Subtitle Codecs" Icon="bi-badge-cc" Items="_stats.SubtitleCodecs"
+                                  OnItemClick="@(v => NavigateToFilter("subtitleCodec", v))"/>
             </div>
             <div class="col-xl-4 col-md-6">
-                <DistributionCard Title="Channel Layouts" Icon="bi-speaker" Items="_stats.ChannelLayouts" OnItemClick="@(v => NavigateToFilter("channelLayout", v))" />
+                <DistributionCard Title="Channel Layouts" Icon="bi-speaker" Items="_stats.ChannelLayouts"
+                                  OnItemClick="@(v => NavigateToFilter("channelLayout", v))"/>
             </div>
             <div class="col-xl-4 col-md-6">
-                <DistributionCard Title="Containers" Icon="bi-box" Items="_stats.Containers" OnItemClick="@(v => NavigateToFilter("container", v))" />
+                <DistributionCard Title="Containers" Icon="bi-box" Items="_stats.Containers"
+                                  OnItemClick="@(v => NavigateToFilter("container", v))"/>
             </div>
             <div class="col-xl-4 col-md-6">
-                <DistributionCard Title="Bit Depth" Icon="bi-palette" Items="_stats.VideoBitDepths" OnItemClick="@(v => NavigateToFilter("bitDepth", v))" />
+                <DistributionCard Title="Bit Depth" Icon="bi-palette" Items="_stats.VideoBitDepths"
+                                  OnItemClick="@(v => NavigateToFilter("bitDepth", v))"/>
             </div>
         </div>
     }
@@ -163,4 +170,5 @@
             _refreshing = false;
         }
     }
+
 }

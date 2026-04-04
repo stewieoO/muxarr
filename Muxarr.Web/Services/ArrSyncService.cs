@@ -27,13 +27,13 @@ public class ArrSyncService(
         if (DateTime.UtcNow - _lastSync > TimeSpan.FromMinutes(5))
         {
             _lastSync = DateTime.UtcNow;
-            context.Configs.Set(_lastSync,"LastArrSync");
+            context.Configs.Set(_lastSync, "LastArrSync");
             await context.SaveChangesAsync(token);
 
             await SyncArrs(context, token);
         }
     }
-    
+
     private async Task SyncArrs(AppDbContext context, CancellationToken token)
     {
         var radarrCfg = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.RadarrKey);
@@ -41,10 +41,7 @@ public class ArrSyncService(
 
         // Sync Radarr Movies
         var radarrResult = await arrApi.SyncMovies(radarrCfg);
-        if (radarrResult.Count > 0)
-        {
-            logger.LogInformation("Synced {Count} movie(s) from Radarr", radarrResult.Count);
-        }
+        if (radarrResult.Count > 0) logger.LogInformation("Synced {Count} movie(s) from Radarr", radarrResult.Count);
 
         await SyncMedia(context, radarrResult.Select(x => new MediaInfo
         {
@@ -57,10 +54,7 @@ public class ArrSyncService(
 
         // Sync Sonarr Series
         var sonarrResult = await arrApi.SyncSeries(sonarrCfg);
-        if (sonarrResult.Count > 0)
-        {
-            logger.LogInformation("Synced {Count} series from Sonarr", sonarrResult.Count);
-        }
+        if (sonarrResult.Count > 0) logger.LogInformation("Synced {Count} series from Sonarr", sonarrResult.Count);
 
         await SyncMedia(context, sonarrResult.Select(x => new MediaInfo
         {
@@ -72,14 +66,14 @@ public class ArrSyncService(
         }), false, token);
     }
 
-    private static async Task SyncMedia(AppDbContext context, IEnumerable<MediaInfo> newMedia, bool isMovie, CancellationToken token)
+    private static async Task SyncMedia(AppDbContext context, IEnumerable<MediaInfo> newMedia, bool isMovie,
+        CancellationToken token)
     {
-        var currentMedia = await context.MediaInfos.Where(x => x.IsMovie == isMovie).ToListAsync(cancellationToken: token);
+        var currentMedia = await context.MediaInfos.Where(x => x.IsMovie == isMovie).ToListAsync(token);
         var newMediaDict = newMedia.ToDictionary(m => m.ExternalId);
 
         // Update or Add Records
         foreach (var media in currentMedia)
-        {
             if (newMediaDict.TryGetValue(media.ExternalId, out var updatedMedia))
             {
                 if (media.OriginalLanguage != updatedMedia.OriginalLanguage ||
@@ -88,13 +82,13 @@ public class ArrSyncService(
                     media.OriginalLanguage = updatedMedia.OriginalLanguage;
                     media.Path = updatedMedia.Path;
                 }
+
                 newMediaDict.Remove(media.ExternalId); // Remove from newMediaDict as it’s already processed
             }
             else
             {
                 context.MediaInfos.Remove(media); // Delete if not in new media
             }
-        }
 
         // Add Remaining New Records
         context.MediaInfos.AddRange(newMediaDict.Values);

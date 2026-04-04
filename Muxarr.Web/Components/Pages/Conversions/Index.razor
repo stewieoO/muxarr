@@ -66,9 +66,15 @@
                                         <span class="small">@conversion.Name</span>
                                     </a>
                                 </td>
-                                <td><ConversionStateBadge Conversion="conversion"/></td>
-                                <td><ConversionProgressBar Conversion="conversion"/></td>
-                                <td><TimeAgo DateTime="conversion.CreatedDate"/></td>
+                                <td>
+                                    <ConversionStateBadge Conversion="conversion"/>
+                                </td>
+                                <td>
+                                    <ConversionProgressBar Conversion="conversion"/>
+                                </td>
+                                <td>
+                                    <TimeAgo DateTime="conversion.CreatedDate"/>
+                                </td>
                                 <td class="text-center">
                                     @if (conversion.State == ConversionState.Processing)
                                     {
@@ -206,8 +212,7 @@
     [Inject] public required IToastService ToastService { get; set; }
     [Inject] public required IModalService ModalService { get; set; }
 
-    [Filter]
-    private string _stateFilter = "All";
+    [Filter] private string _stateFilter = "All";
 
     private readonly string[] _stateOptions = ["All", "New", "Processing", "Completed", "Failed"];
     private List<MediaConversion> _activeConversions = new();
@@ -280,6 +285,7 @@
         {
             return;
         }
+
         MediaConverter.CancelCurrentConversion();
         ToastService.ShowWarning("Cancelling current conversion.");
     }
@@ -290,6 +296,7 @@
         {
             return;
         }
+
         await MediaConverter.CancelQueuedConversion(conversion.Id);
         _activeConversions.Remove(conversion);
         await UpdateList();
@@ -302,6 +309,7 @@
         {
             return;
         }
+
         await MediaConverter.ClearQueue();
         await UpdateList();
         ToastService.ShowWarning("Queue cleared.");
@@ -375,4 +383,5 @@
         MediaConverter.QueueStateChanged -= OnQueueStateChanged;
         base.Dispose();
     }
+
 }

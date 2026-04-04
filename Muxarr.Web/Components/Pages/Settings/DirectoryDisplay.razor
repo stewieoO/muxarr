@@ -19,6 +19,7 @@
         </ToolTip>
     }
 }
+
 @code {
-    [Parameter, EditorRequired] public List<string> Directories { get; set; } = new();
+    [Parameter][EditorRequired] public List<string> Directories { get; set; } = new();
 }

@@ -4,10 +4,10 @@
 }
 else
 {
-    @foreach (var track in (_expand ? Tracks : Tracks.Take(3)))
+    @foreach (var track in _expand ? Tracks : Tracks.Take(3))
     {
         <ToolTip Tip="@track.TrackName">
-                <MediaTrackLabel Track="track" />
+            <MediaTrackLabel Track="track"/>
         </ToolTip>
     }
 
@@ -21,5 +21,5 @@ else
 
 @code {
     bool _expand;
-    [Parameter, EditorRequired] public required IEnumerable<IMediaTrack> Tracks { get; set; }
+    [Parameter][EditorRequired] public required IEnumerable<IMediaTrack> Tracks { get; set; }
 }

@@ -6,7 +6,7 @@
 </ToolTip>
 
 @code {
-    [Parameter, EditorRequired] public DateTime DateTime { get; set; }
+    [Parameter][EditorRequired] public DateTime DateTime { get; set; }
 
     private string TimeAgoText => GetTimeAgo(DateTime);
 
@@ -22,6 +22,7 @@
         {
             return; // Skip 
         }
+
         _ = InvokeAsync(StateHasChanged);
     }
 
@@ -43,7 +44,7 @@
 
     private string FormatTimeAgo(double timeValue, string unit)
     {
-        int roundedValue = (int)Math.Floor(timeValue);
+        var roundedValue = (int)Math.Floor(timeValue);
 
         // Singular form for "1 minute", "1 hour", etc.
         if (roundedValue == 1)

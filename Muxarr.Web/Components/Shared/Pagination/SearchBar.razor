@@ -1,5 +1,6 @@
 <div class="input-group input-group-sm">
-    <input type="text" class="form-control" placeholder="@PlaceHolder" @bind="@Parent.SearchTerm" @bind:event="oninput" @onkeyup="HandleKeyUp"/>
+    <input type="text" class="form-control" placeholder="@PlaceHolder" @bind="@Parent.SearchTerm" @bind:event="oninput"
+           @onkeyup="HandleKeyUp"/>
     <button class="btn btn-outline-secondary" type="button" @onclick="Search">
         <i class="bi bi-search"></i> Search
     </button>
@@ -8,7 +9,7 @@
 @code {
     [Parameter] public string PlaceHolder { get; set; } = "Search...";
 
-    [Parameter, EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
+    [Parameter][EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
 
     private async Task HandleKeyUp(KeyboardEventArgs e)
     {
@@ -20,6 +21,7 @@
 
     private async Task Search()
     {
-	    await Parent.Search(Parent.SearchTerm);
+        await Parent.Search(Parent.SearchTerm);
     }
+
 }

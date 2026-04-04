@@ -1,12 +1,10 @@
-@using Muxarr.Core.Extensions
-
 <TagSelector TItem="SubtitleCodec" SelectedItems="SelectedItems" OnSearchInput="OnSearchInput" ShowListOnFocus="true">
     <TagTemplate>@context.DisplayName()</TagTemplate>
     <ListTemplate>@context.DisplayName()</ListTemplate>
 </TagSelector>
 
 @code {
-    [Parameter, EditorRequired] public required List<SubtitleCodec> SelectedItems { get; set; }
+    [Parameter][EditorRequired] public required List<SubtitleCodec> SelectedItems { get; set; }
 
     private Task<List<SubtitleCodec>> OnSearchInput(string query)
     {
@@ -18,4 +16,5 @@
 
         return Task.FromResult(results);
     }
+
 }

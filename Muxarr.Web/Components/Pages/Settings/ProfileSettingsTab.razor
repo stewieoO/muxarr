@@ -1,6 +1,7 @@
 @attribute [StreamRendering]
 
-<p class="text-muted">Manage your media profiles and configurations. Each profile can have its own set of directories and scanning rules.</p>
+<p class="text-muted">Manage your media profiles and configurations. Each profile can have its own set of directories
+    and scanning rules.</p>
 @if (Profiles.Count == 0)
 {
     <div class="alert alert-info">
@@ -27,7 +28,7 @@ else
             <tr>
                 <td>@profile.Name</td>
                 <td>
-                    <DirectoryDisplay Directories="profile.Directories" />
+                    <DirectoryDisplay Directories="profile.Directories"/>
                 </td>
                 <td>
                     @if (profile.ClearVideoTrackNames)
@@ -126,6 +127,8 @@ else
             await context.Profiles.Where(x => x.Id == profile.Id).ExecuteDeleteAsync();
             await context.SaveChangesAsync();
         }
+
         ToastService.ShowWarning($"Profile '{profile.Name}' deleted.");
     }
+
 }

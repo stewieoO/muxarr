@@ -15,7 +15,7 @@ public static class HealthCheckExtensions
             {
                 builder.AddPolicy<AlwaysCachePolicy>();
                 builder.Expire(TimeSpan.FromMinutes(5));
-            }, excludeDefaultPolicy: true);
+            }, true);
         });
 
         return services.AddHealthChecks()
@@ -42,9 +42,13 @@ public static class HealthCheckExtensions
         }
 
         public ValueTask ServeFromCacheAsync(OutputCacheContext context, CancellationToken cancellationToken)
-            => ValueTask.CompletedTask;
+        {
+            return ValueTask.CompletedTask;
+        }
 
         public ValueTask ServeResponseAsync(OutputCacheContext context, CancellationToken cancellationToken)
-            => ValueTask.CompletedTask;
+        {
+            return ValueTask.CompletedTask;
+        }
     }
 }

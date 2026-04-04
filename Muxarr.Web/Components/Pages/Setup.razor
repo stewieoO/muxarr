@@ -1,9 +1,9 @@
 @page "/setup"
-@layout Muxarr.Web.Components.Layout.SetupLayout
 @using Microsoft.AspNetCore.Identity
-@using Muxarr.Core.Api
 @using Muxarr.Core.Config
+@using Muxarr.Web.Components.Layout
 @using Muxarr.Web.Components.Pages.Settings
+@layout SetupLayout
 @attribute [StreamRendering]
 
 <div class="card p-4">
@@ -29,15 +29,15 @@
 
         <div class="mb-3">
             <label class="form-label">Username</label>
-            <input type="text" class="form-control" @bind="_username" />
+            <input type="text" class="form-control" @bind="_username"/>
         </div>
         <div class="mb-3">
             <label class="form-label">Password</label>
-            <input type="password" class="form-control" @bind="_password" />
+            <input type="password" class="form-control" @bind="_password"/>
         </div>
         <div class="mb-4">
             <label class="form-label">Confirm Password</label>
-            <input type="password" class="form-control" @bind="_confirmPassword" />
+            <input type="password" class="form-control" @bind="_confirmPassword"/>
         </div>
 
         <div class="d-flex justify-content-between align-items-center">
@@ -61,9 +61,10 @@
         <EditForm Model="_arrConfigs" FormName="arr-setup">
             <div class="border rounded p-4 mb-4">
                 <h5 class="mb-3"><i class="bi bi-link-45deg me-2"></i>Muxarr URL</h5>
-                <input type="text" class="form-control" @bind="_muxarrUrl" placeholder="http://muxarr:8183" />
+                <input type="text" class="form-control" @bind="_muxarrUrl" placeholder="http://muxarr:8183"/>
                 <small class="form-text text-muted">
-                    The URL that Sonarr/Radarr can reach Muxarr at. Example: <code>http://muxarr:8183</code> (Docker) or <code>http://x.x.x.x:8183</code> (LAN IP)
+                    The URL that Sonarr/Radarr can reach Muxarr at. Example: <code>http://muxarr:8183</code> (Docker) or
+                    <code>http://x.x.x.x:8183</code> (LAN IP)
                 </small>
             </div>
 
@@ -72,13 +73,13 @@
                     <ArrServiceCard Name="Sonarr" Config="_sonarrConfig"
                                     ConfigKey="@ArrConfig.SonarrKey"
                                     GetWebhookUrl="@GetWebhookUrl"
-                                    AutoSave="@PersistConnections" />
+                                    AutoSave="@PersistConnections"/>
                 </div>
                 <div class="col-md-6">
                     <ArrServiceCard Name="Radarr" Config="_radarrConfig"
                                     ConfigKey="@ArrConfig.RadarrKey"
                                     GetWebhookUrl="@GetWebhookUrl"
-                                    AutoSave="@PersistConnections" />
+                                    AutoSave="@PersistConnections"/>
                 </div>
             </div>
 
@@ -106,7 +107,9 @@
         </p>
         <ul class="text-muted small mb-3">
             <li><strong>Directories</strong> — which folders to scan for media files</li>
-            <li><strong>Audio settings</strong> — which audio languages to keep, whether to remove commentary or hearing-impaired tracks</li>
+            <li><strong>Audio settings</strong> — which audio languages to keep, whether to remove commentary or
+                hearing-impaired tracks
+            </li>
             <li><strong>Subtitle settings</strong> — same controls for subtitle tracks</li>
             <li><strong>Track name standardization</strong> — optionally rename tracks to a consistent format</li>
         </ul>
@@ -140,7 +143,7 @@
     private string _muxarrUrl = "";
     private string _webhookApiKey = "";
     private string? _error;
-    private ArrConfigs _arrConfigs = new();
+    private readonly ArrConfigs _arrConfigs = new();
     private ArrConfig _sonarrConfig => _arrConfigs.Sonarr;
     private ArrConfig _radarrConfig => _arrConfigs.Radarr;
 
@@ -150,11 +153,13 @@
         {
             return "http://<muxarr-host>:8183/api/webhook";
         }
+
         var url = $"{_muxarrUrl.TrimEnd('/')}/api/webhook";
         if (!string.IsNullOrEmpty(_webhookApiKey))
         {
             url += $"?apikey={_webhookApiKey}";
         }
+
         return url;
     }
 
@@ -266,4 +271,5 @@
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo("/settings/profile/0");
     }
+
 }

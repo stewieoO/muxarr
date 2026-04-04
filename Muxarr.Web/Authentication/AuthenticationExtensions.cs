@@ -26,8 +26,8 @@ public static class AuthenticationExtensions
         {
             options.AddPolicy(AuthController.LoginRateLimitPolicy, httpContext =>
                 RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = 5,
                         Window = TimeSpan.FromMinutes(15),

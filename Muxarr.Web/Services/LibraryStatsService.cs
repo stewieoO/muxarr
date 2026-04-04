@@ -63,21 +63,19 @@ public class LibraryStatsService(IDbContextFactory<AppDbContext> contextFactory,
         context.Configs.Set(stats);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("Library statistics computed: {Files} files, {Tracks} tracks", stats.TotalFiles, stats.TotalTracks);
+        logger.LogInformation("Library statistics computed: {Files} files, {Tracks} tracks", stats.TotalFiles,
+            stats.TotalTracks);
     }
 
     /// <summary>
-    /// Lightweight update after a conversion completes. Bumps the conversion count and
-    /// space saved without recomputing the full stats (distributions, track counts, etc.).
+    ///     Lightweight update after a conversion completes. Bumps the conversion count and
+    ///     space saved without recomputing the full stats (distributions, track counts, etc.).
     /// </summary>
     public async Task UpdateConversionStats(long spaceSaved)
     {
         await using var context = await contextFactory.CreateDbContextAsync();
         var stats = context.Configs.Get<LibraryStatsConfig>();
-        if (stats == null)
-        {
-            return;
-        }
+        if (stats == null) return;
 
         stats.TotalConversions++;
         stats.SpaceSavedBytes += spaceSaved;
@@ -94,10 +92,7 @@ public class LibraryStatsService(IDbContextFactory<AppDbContext> contextFactory,
             .OrderByDescending(e => e.Count)
             .ToListAsync();
 
-        foreach (var entry in entries)
-        {
-            entry.Label = entry.Label.FormatCodec();
-        }
+        foreach (var entry in entries) entry.Label = entry.Label.FormatCodec();
 
         return entries;
     }

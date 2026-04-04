@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.WebEncoders.Testing;
 using Muxarr.Core.Config;
 using Muxarr.Data;
 using Muxarr.Data.Extensions;

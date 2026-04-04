@@ -10,6 +10,7 @@
 }
 
 @code {
+
     protected override void OnInitialized()
     {
         Tooltip.Subscribe(OnTooltipChanged);
@@ -24,4 +25,5 @@
     {
         Tooltip.Unsubscribe(OnTooltipChanged);
     }
+
 }

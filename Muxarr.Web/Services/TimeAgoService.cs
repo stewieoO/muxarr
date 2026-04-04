@@ -4,9 +4,9 @@ namespace Muxarr.Web.Services;
 
 public class TimeAgoService(ILogger<TimeAgoService> logger) : ScheduledServiceBase(logger)
 {
-    public override TimeSpan Interval => TimeSpan.FromMinutes(1);
     private readonly Lock _lock = new();
     private readonly List<Action> _subscribers = new();
+    public override TimeSpan Interval => TimeSpan.FromMinutes(1);
 
     protected override Task ExecuteAsync(CancellationToken token)
     {
@@ -16,10 +16,7 @@ public class TimeAgoService(ILogger<TimeAgoService> logger) : ScheduledServiceBa
             snapshot = [.. _subscribers];
         }
 
-        foreach (var subscriber in snapshot)
-        {
-            subscriber.Invoke();
-        }
+        foreach (var subscriber in snapshot) subscriber.Invoke();
 
         return Task.CompletedTask;
     }

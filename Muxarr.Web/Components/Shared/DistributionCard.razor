@@ -1,5 +1,5 @@
+@using System.Globalization
 @using Muxarr.Core.Config
-
 @if (Items.Count > 0)
 {
     <div class="card h-100">
@@ -19,7 +19,7 @@
                         </div>
                         <div class="progress" style="height: 6px;">
                             <div class="progress-bar" role="progressbar"
-                                 style="width: @(item.Percentage.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%">
+                                 style="width: @(item.Percentage.ToString("0.#", CultureInfo.InvariantCulture))%">
                             </div>
                         </div>
                     </div>
@@ -30,7 +30,7 @@
 }
 
 @code {
-    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter][EditorRequired] public string Title { get; set; } = "";
     [Parameter] public string Icon { get; set; } = "bi-bar-chart";
     [Parameter] public List<DistributionEntry> Items { get; set; } = [];
     [Parameter] public int MaxItems { get; set; } = 10;
@@ -69,4 +69,5 @@
         public int Count { get; set; }
         public double Percentage { get; set; }
     }
+
 }

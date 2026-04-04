@@ -1,12 +1,10 @@
-@using System.IO
 @using Microsoft.Extensions.Caching.Memory
-
 <div>
     @foreach (var directory in Directories)
     {
         <div class="input-group mb-2">
             <input type="text" class="form-control" value="@directory"
-                   @onchange="@(e => UpdateDirectory(directory, e.Value!.ToString()!))" />
+                   @onchange="@(e => UpdateDirectory(directory, e.Value!.ToString()!))"/>
             <button type="button" class="btn btn-outline-secondary" @onclick="@(() => OpenDirectoryPicker(directory))">
                 <i class="bi bi-folder2-open"></i>
             </button>
@@ -32,7 +30,7 @@
                         <input type="text" class="form-control" value="@_currentDirectory"
                                @onchange="@(e => NavigateDirectory(e.Value!.ToString()!))"
                                @onkeydown="@HandleKeyPress"
-                               placeholder="Enter path or browse directories" />
+                               placeholder="Enter path or browse directories"/>
                         <button class="btn btn-outline-secondary" type="button"
                                 @onclick="@(() => NavigateDirectory(_currentDirectory))">
                             <i class="bi bi-arrow-repeat"></i>
@@ -64,7 +62,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseDirectoryPicker">Cancel</button>
-                    <button type="button" class="btn btn-primary" @onclick="SelectCurrentDirectory">Select Directory</button>
+                    <button type="button" class="btn btn-primary" @onclick="SelectCurrentDirectory">Select Directory
+                    </button>
                 </div>
             </div>
         </div>
@@ -88,6 +87,7 @@
         {
             return;
         }
+
         Directories.Add(string.Empty);
         OpenDirectoryPicker(string.Empty);
         await DirectoriesChanged.InvokeAsync(Directories);
@@ -163,6 +163,8 @@
         {
             await UpdateDirectory(_directoryToUpdate, _currentDirectory);
         }
+
         CloseDirectoryPicker();
     }
+
 }

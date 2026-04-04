@@ -1,7 +1,7 @@
 @code {
     [Parameter] public string ActiveTab { get; set; } = "";
     [Parameter] public RenderFragment ChildContent { get; set; } = null!;
-    private List<Tab> _tabs = [];
+    private readonly List<Tab> _tabs = [];
 
     public void ActivateTab(string tabName)
     {
@@ -16,8 +16,10 @@
         {
             ActiveTab = tab.Name;
         }
+
         StateHasChanged();
     }
+
 }
 
 <div class="container-fluid mt-4">

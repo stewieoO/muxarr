@@ -25,10 +25,7 @@ public class AuthController(IDbContextFactory<AppDbContext> contextFactory) : Co
         await using var context = await contextFactory.CreateDbContextAsync();
         var config = await context.Configs.GetAsync<AuthConfig>(AuthConfig.Key);
 
-        if (config == null)
-        {
-            return Redirect("/");
-        }
+        if (config == null) return Redirect("/");
 
         var isValid = string.Equals(config.Username, username, StringComparison.OrdinalIgnoreCase);
         if (isValid)
@@ -37,10 +34,7 @@ public class AuthController(IDbContextFactory<AppDbContext> contextFactory) : Co
             isValid = result != PasswordVerificationResult.Failed;
         }
 
-        if (!isValid)
-        {
-            return Redirect("/login?error=1");
-        }
+        if (!isValid) return Redirect("/login?error=1");
 
         var claims = new List<Claim>
         {

@@ -15,10 +15,7 @@ public class StatsController(IDbContextFactory<AppDbContext> contextFactory) : C
 {
     private static Dictionary<string, int> ToDict(List<DistributionEntry>? entries)
     {
-        if (entries == null || entries.Count == 0)
-        {
-            return new();
-        }
+        if (entries == null || entries.Count == 0) return new Dictionary<string, int>();
 
         return entries
             .GroupBy(e => e.Label)
@@ -77,7 +74,7 @@ public class StatsController(IDbContextFactory<AppDbContext> contextFactory) : C
             AudioLanguages = ToDict(stats?.AudioLanguages),
             SubtitleLanguages = ToDict(stats?.SubtitleLanguages),
             Containers = ToDict(stats?.Containers),
-            VideoBitDepths = ToDict(stats?.VideoBitDepths),
+            VideoBitDepths = ToDict(stats?.VideoBitDepths)
         });
     }
 }

@@ -10,12 +10,9 @@
 </div>
 
 @code {
-	[Parameter]
-	public TEnum? Value { get; set; }
-	[Parameter]
-	public EventCallback<TEnum?> ValueChanged { get; set; }
-	[Parameter]
-	public string? EmptyValue { get; set; }
+	[Parameter] public TEnum? Value { get; set; }
+	[Parameter] public EventCallback<TEnum?> ValueChanged { get; set; }
+	[Parameter] public string? EmptyValue { get; set; }
 
 	private async Task OnSelectionChanged(ChangeEventArgs e)
 	{
@@ -30,4 +27,5 @@
 			await ValueChanged.InvokeAsync(selectedValue);
 		}
 	}
+
 }

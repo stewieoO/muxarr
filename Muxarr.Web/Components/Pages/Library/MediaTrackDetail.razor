@@ -12,7 +12,8 @@
 
         @if (DisplayLanguage == OriginalLanguage)
         {
-            <ToolTip Tip="@(ResolvedLanguage != null ? $"Undetermined -> {ResolvedLanguage} (original language)" : "Original Language")">
+            <ToolTip
+                Tip="@(ResolvedLanguage != null ? $"Undetermined -> {ResolvedLanguage} (original language)" : "Original Language")">
                 <i class="bi bi-star-fill text-warning ms-2"></i>
             </ToolTip>
         }
@@ -33,7 +34,8 @@
         }
         @if (!string.IsNullOrEmpty(Track.TrackName))
         {
-            <span class="text-muted small me-2 @(HasTrackNameChange ? "text-decoration-line-through" : "")">@Track.TrackName</span>
+            <span
+                class="text-muted small me-2 @(HasTrackNameChange ? "text-decoration-line-through" : "")">@Track.TrackName</span>
         }
         @if (HasTrackNameChange && !string.IsNullOrEmpty(Preview?.TrackName))
         {
@@ -43,11 +45,11 @@
 </tr>
 
 @code {
-    [Parameter, EditorRequired] public IMediaTrack Track { get; set; } = default!;
+    [Parameter][EditorRequired] public IMediaTrack Track { get; set; } = default!;
 
-    [Parameter, EditorRequired] public bool IsAllowed { get; set; }
+    [Parameter][EditorRequired] public bool IsAllowed { get; set; }
 
-    [Parameter, EditorRequired] public string? OriginalLanguage { get; set; }
+    [Parameter][EditorRequired] public string? OriginalLanguage { get; set; }
 
     [Parameter] public TrackSnapshot? Preview { get; set; }
 
@@ -75,21 +77,26 @@
             {
                 parts.Add($"Language: {Track.LanguageName} → {Preview.LanguageName}");
             }
+
             if (Preview != null && !string.Equals(Track.TrackName ?? "", Preview.TrackName ?? "", StringComparison.Ordinal))
             {
                 parts.Add(string.IsNullOrEmpty(Preview.TrackName)
                     ? "Track name will be cleared"
                     : $"Track name → {Preview.TrackName}");
             }
+
             if (Preview != null && Preview.IsDefault != Track.IsDefault)
             {
                 parts.Add(Preview.IsDefault ? "Will be set as default" : "Will be unset as default");
             }
+
             if (Preview != null && Preview.IsForced != Track.IsForced)
             {
                 parts.Add(Preview.IsForced ? "Will be set as forced" : "Will be unset as forced");
             }
+
             return string.Join("\n", parts);
         }
     }
+
 }

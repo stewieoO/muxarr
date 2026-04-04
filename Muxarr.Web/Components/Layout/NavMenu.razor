@@ -1,5 +1,4 @@
 @using Microsoft.AspNetCore.Components.Authorization
-
 <nav class="mux-sidebar @(_isDesktopCollapsed ? "collapsed" : "") @(_isMobileOpen ? "mux-mobile-open" : "")">
     <div class="mux-sidebar-header d-none d-md-flex">
         <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
@@ -70,8 +69,10 @@
             }
         </ul>
         <div class="d-flex align-items-center justify-content-between mux-footer-meta">
-            <a href="https://github.com/KirovAir/muxarr" target="_blank" class="mux-version text-decoration-none">v@(AppInfo.Version)</a>
-            <button class="btn btn-link text-light p-0 mux-footer-btn d-none d-md-inline-flex" @onclick="ToggleDesktopCollapse"
+            <a href="https://github.com/KirovAir/muxarr" target="_blank"
+               class="mux-version text-decoration-none">v@(AppInfo.Version)</a>
+            <button class="btn btn-link text-light p-0 mux-footer-btn d-none d-md-inline-flex"
+                    @onclick="ToggleDesktopCollapse"
                     title="@(_isDesktopCollapsed ? "Expand" : "Collapse")">
                 <i class="bi @(_isDesktopCollapsed ? "bi-chevron-right" : "bi-chevron-left")"></i>
             </button>
@@ -89,11 +90,9 @@
     private bool _isMobileOpen;
     private bool _isAuthenticated;
 
-    [CascadingParameter]
-    public MainLayout Layout { get; set; } = default!;
+    [CascadingParameter] public MainLayout Layout { get; set; } = default!;
 
-    [Inject]
-    public AuthenticationStateProvider? AuthStateProvider { get; set; }
+    [Inject] public AuthenticationStateProvider? AuthStateProvider { get; set; }
 
     public void ToggleMobileMenu()
     {
@@ -128,4 +127,5 @@
             _isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
         }
     }
+
 }

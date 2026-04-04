@@ -8,35 +8,35 @@
         <Version>0.6.9</Version>
     </PropertyGroup>
 
-<ItemGroup>
-      <ProjectReference Include="..\Muxarr.Core\Muxarr.Core.csproj" />
-      <ProjectReference Include="..\Muxarr.Data\Muxarr.Data.csproj" />
+    <ItemGroup>
+        <ProjectReference Include="..\Muxarr.Core\Muxarr.Core.csproj"/>
+        <ProjectReference Include="..\Muxarr.Data\Muxarr.Data.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css" />
-      <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css.map" />
-      <_ContentIncludedByDefault Remove="Components\Shared\Pagination\Pagination.razor" />
-      <_ContentIncludedByDefault Remove="Components\Shared\Pagination\PaginationItem.razor" />
-      <_ContentIncludedByDefault Remove="Components\Pages\Profiles\Index.razor" />
-      <_ContentIncludedByDefault Remove="Components\Shared\Selectable\SelectAllCheckbox.razor" />
-      <_ContentIncludedByDefault Remove="Components\Shared\Selectable\SelectionCheckbox.razor" />
-      <_ContentIncludedByDefault Remove="publish\wwwroot\lib\bootstrap-icons\font\bootstrap-icons.json" />
+        <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css"/>
+        <_ContentIncludedByDefault Remove="wwwroot\bootstrap\bootstrap.min.css.map"/>
+        <_ContentIncludedByDefault Remove="Components\Shared\Pagination\Pagination.razor"/>
+        <_ContentIncludedByDefault Remove="Components\Shared\Pagination\PaginationItem.razor"/>
+        <_ContentIncludedByDefault Remove="Components\Pages\Profiles\Index.razor"/>
+        <_ContentIncludedByDefault Remove="Components\Shared\Selectable\SelectAllCheckbox.razor"/>
+        <_ContentIncludedByDefault Remove="Components\Shared\Selectable\SelectionCheckbox.razor"/>
+        <_ContentIncludedByDefault Remove="publish\wwwroot\lib\bootstrap-icons\font\bootstrap-icons.json"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Blazored.Modal" />
-      <PackageReference Include="Blazored.Toast" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        <PrivateAssets>all</PrivateAssets>
-      </PackageReference>
-      <PackageReference Include="Microsoft.Web.LibraryManager.Build" />
-      <PackageReference Include="Serilog.AspNetCore" />
+        <PackageReference Include="Blazored.Modal"/>
+        <PackageReference Include="Blazored.Toast"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Web.LibraryManager.Build"/>
+        <PackageReference Include="Serilog.AspNetCore"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Content Update="appsettings.Development.json" DependentUpon="appsettings.json" />
+        <Content Update="appsettings.Development.json" DependentUpon="appsettings.json"/>
     </ItemGroup>
 
 </Project>
