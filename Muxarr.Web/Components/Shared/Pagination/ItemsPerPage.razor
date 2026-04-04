@@ -10,7 +10,7 @@
 
 @code {
 	[Parameter] public int[] Options { get; set; } = [10, 50, 100, 500, 1000, 5000, 10000];
-	[Parameter][EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
+	[Parameter] [EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
 
 	private async Task OnSelectionChanged(ChangeEventArgs e)
 	{

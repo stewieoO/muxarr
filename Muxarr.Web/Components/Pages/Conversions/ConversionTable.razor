@@ -48,7 +48,7 @@
 </table>
 
 @code {
-    [Parameter][EditorRequired] public required ICollection<MediaConversion> Items { get; set; }
+    [Parameter] [EditorRequired] public required ICollection<MediaConversion> Items { get; set; }
     [Inject] public required NavigationManager NavigationManager { get; set; }
 
     private void Navigate(int id)

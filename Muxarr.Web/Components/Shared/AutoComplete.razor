@@ -41,13 +41,13 @@
 @code {
     private IEnumerable<TItem>? ItemList { get; set; }
 
-    [Parameter][EditorRequired] public required RenderFragment<TItem> ListTemplate { get; set; }
+    [Parameter] [EditorRequired] public required RenderFragment<TItem> ListTemplate { get; set; }
 
-    [Parameter][EditorRequired] public EventCallback<TItem> OnSelectItem { get; set; }
+    [Parameter] [EditorRequired] public EventCallback<TItem> OnSelectItem { get; set; }
 
-    [Parameter][EditorRequired] public required Func<string, Task<List<TItem>>> OnSearchInput { get; set; }
+    [Parameter] [EditorRequired] public required Func<string, Task<List<TItem>>> OnSearchInput { get; set; }
 
-    [Parameter][EditorRequired] public required string SearchInput { get; set; }
+    [Parameter] [EditorRequired] public required string SearchInput { get; set; }
 
     [Parameter] public bool ShowListOnFocus { get; set; }
 

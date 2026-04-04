@@ -218,9 +218,9 @@
 </div>
 
 @code {
-    [Parameter][EditorRequired] public TrackSettings Settings { get; set; } = default!;
+    [Parameter] [EditorRequired] public TrackSettings Settings { get; set; } = default!;
 
-    [Parameter][EditorRequired] public MediaTrackType TrackType { get; set; }
+    [Parameter] [EditorRequired] public MediaTrackType TrackType { get; set; }
 
     private string TrackTypeLabel => TrackType == MediaTrackType.Audio ? "Audio" : "Subtitle";
     private bool IsAudio => TrackType == MediaTrackType.Audio;

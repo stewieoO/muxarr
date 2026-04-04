@@ -12,7 +12,10 @@ public class DefaultPaginatedListComponent<T>(AppDbContext context, Expression<F
     {
         var query = context.Set<T>().AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(SearchTerm)) query = query.WhereDynamic(searchProperties, SearchTerm);
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            query = query.WhereDynamic(searchProperties, SearchTerm);
+        }
 
         var result = await query.Sort(CurrentSortProperty, IsAscending).FindPagedAsync(Page, PageSize, true);
         TotalItems = result.Total;

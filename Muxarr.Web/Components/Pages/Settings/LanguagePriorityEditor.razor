@@ -137,7 +137,7 @@
 </div>
 
 @code {
-    [Parameter][EditorRequired] public required List<LanguagePreference> Languages { get; set; }
+    [Parameter] [EditorRequired] public required List<LanguagePreference> Languages { get; set; }
     [Parameter] public MediaTrackType TrackType { get; set; }
 
     private bool IsAudio => TrackType == MediaTrackType.Audio;

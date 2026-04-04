@@ -9,6 +9,7 @@
 @code {
 	[CascadingParameter] public required BlazoredModalInstance BlazoredModal { get; set; }
 	[Parameter] public string? Message { get; set; }
+
 	private async Task Cancel()
 	{
 		await BlazoredModal.CloseAsync(ModalResult.Cancel());

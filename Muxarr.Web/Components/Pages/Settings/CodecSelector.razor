@@ -4,7 +4,7 @@
 </TagSelector>
 
 @code {
-    [Parameter][EditorRequired] public required List<SubtitleCodec> SelectedItems { get; set; }
+    [Parameter] [EditorRequired] public required List<SubtitleCodec> SelectedItems { get; set; }
 
     private Task<List<SubtitleCodec>> OnSearchInput(string query)
     {

@@ -19,9 +19,9 @@
 
     [Parameter] public string? EmptyValue { get; set; }
 
-    [Parameter][EditorRequired] public IEnumerable<TType> Items { get; set; } = [];
+    [Parameter] [EditorRequired] public IEnumerable<TType> Items { get; set; } = [];
 
-    [Parameter][EditorRequired] public string DisplayProperty { get; set; } = null!;
+    [Parameter] [EditorRequired] public string DisplayProperty { get; set; } = null!;
 
     protected override void OnInitialized()
     {

@@ -1,7 +1,7 @@
 ﻿<span class="badge @GetStateBadgeClass(Conversion.State)">@Conversion.State</span>
 
 @code {
-    [Parameter][EditorRequired] public required MediaConversion Conversion { get; set; }
+    [Parameter] [EditorRequired] public required MediaConversion Conversion { get; set; }
 
     private string GetStateBadgeClass(ConversionState state)
     {

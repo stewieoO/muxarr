@@ -26,7 +26,9 @@ public class TimeAgoService(ILogger<TimeAgoService> logger) : ScheduledServiceBa
         lock (_lock)
         {
             if (!_subscribers.Contains(updateCallback))
+            {
                 _subscribers.Add(updateCallback);
+            }
         }
     }
 

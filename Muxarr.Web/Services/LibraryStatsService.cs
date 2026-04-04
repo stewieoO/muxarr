@@ -75,7 +75,10 @@ public class LibraryStatsService(IDbContextFactory<AppDbContext> contextFactory,
     {
         await using var context = await contextFactory.CreateDbContextAsync();
         var stats = context.Configs.Get<LibraryStatsConfig>();
-        if (stats == null) return;
+        if (stats == null)
+        {
+            return;
+        }
 
         stats.TotalConversions++;
         stats.SpaceSavedBytes += spaceSaved;

@@ -23,15 +23,22 @@ public class ApiKeyAuthenticationHandler(
 
         if (string.IsNullOrEmpty(config?.ApiKey))
             // No API key configured - allow all requests
+        {
             return AuthenticateResult.Success(CreateTicket("anonymous"));
+        }
 
         var key = Request.Headers[Options.HeaderName].FirstOrDefault()
                   ?? Request.Query[Options.QueryName].FirstOrDefault();
 
-        if (string.IsNullOrEmpty(key)) return AuthenticateResult.NoResult();
+        if (string.IsNullOrEmpty(key))
+        {
+            return AuthenticateResult.NoResult();
+        }
 
         if (!string.Equals(key, config.ApiKey, StringComparison.Ordinal))
+        {
             return AuthenticateResult.Fail("Invalid API key.");
+        }
 
         return AuthenticateResult.Success(CreateTicket("api"));
     }

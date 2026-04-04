@@ -19,7 +19,9 @@ public class ScheduledServiceManager(ILogger<ScheduledServiceManager> logger, IE
             {
                 foreach (var service in services)
                     if (service.ShouldRun() && !service.IsRunning())
+                    {
                         _ = service.RunAsync(stoppingToken);
+                    }
             }
             catch (Exception ex)
             {

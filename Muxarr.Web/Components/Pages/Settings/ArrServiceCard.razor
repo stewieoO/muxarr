@@ -62,8 +62,8 @@
     private bool? _isConnected;
     private bool? _isWebhookConnected;
 
-    [Parameter][EditorRequired] public required ArrConfig Config { get; set; }
-    [Parameter][EditorRequired] public required string Name { get; set; }
+    [Parameter] [EditorRequired] public required ArrConfig Config { get; set; }
+    [Parameter] [EditorRequired] public required string Name { get; set; }
 
     [Parameter] public string ConfigKey { get; set; } = "";
     [Parameter] public Func<string>? GetWebhookUrl { get; set; }

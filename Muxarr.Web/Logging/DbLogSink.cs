@@ -20,7 +20,10 @@ public class DbLogSink : ILogEventSink
 
             // Shorten fully qualified names: "Muxarr.Web.Services.MediaConverterService" -> "MediaConverterService"
             var lastDot = source.LastIndexOf('.');
-            if (lastDot >= 0) source = source[(lastDot + 1)..];
+            if (lastDot >= 0)
+            {
+                source = source[(lastDot + 1)..];
+            }
         }
 
         _queue.Enqueue(new LogEntry

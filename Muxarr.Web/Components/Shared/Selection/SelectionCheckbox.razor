@@ -7,8 +7,8 @@
 </div>
 
 @code {
-	[Parameter][EditorRequired] public required TType Item { get; set; }
-	[Parameter][EditorRequired] public required SelectablePaginatedListComponent<TType> Parent { get; set; }
+	[Parameter] [EditorRequired] public required TType Item { get; set; }
+	[Parameter] [EditorRequired] public required SelectablePaginatedListComponent<TType> Parent { get; set; }
 
 	private async Task HandleSelectionChange(ChangeEventArgs args)
 	{

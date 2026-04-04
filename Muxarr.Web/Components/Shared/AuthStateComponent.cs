@@ -11,7 +11,10 @@ public abstract class AuthStateComponent : DisposableComponent
 
     protected override async Task OnInitializedAsync()
     {
-        if (AuthenticationStateProvider == null) return;
+        if (AuthenticationStateProvider == null)
+        {
+            return;
+        }
 
         AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         AuthenticationStateProvider.AuthenticationStateChanged += AuthStateHasChanged;
@@ -25,7 +28,10 @@ public abstract class AuthStateComponent : DisposableComponent
 
     public override void Dispose()
     {
-        if (AuthenticationStateProvider == null) return;
+        if (AuthenticationStateProvider == null)
+        {
+            return;
+        }
 
         AuthenticationStateProvider.AuthenticationStateChanged -= AuthStateHasChanged;
         base.Dispose();

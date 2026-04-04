@@ -29,7 +29,9 @@ public class EntityComparer<T> : IEqualityComparer<T> where T : class
     public bool Equals(T? x, T? y)
     {
         if (x == null || y == null)
+        {
             return x == y;
+        }
 
         return x == y;
     }

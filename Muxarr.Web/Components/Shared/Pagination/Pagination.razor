@@ -43,7 +43,7 @@
 
 @code {
 	[Parameter] public EventCallback<int> OnPageChanged { get; set; }
-	[Parameter][EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
+	[Parameter] [EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
 
 	private int StartPage => Math.Max(1, Parent.Page - 2);
 	private int EndPage => Math.Min(Parent.TotalPages, Parent.Page + 2);

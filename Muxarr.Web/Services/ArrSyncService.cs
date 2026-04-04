@@ -41,7 +41,10 @@ public class ArrSyncService(
 
         // Sync Radarr Movies
         var radarrResult = await arrApi.SyncMovies(radarrCfg);
-        if (radarrResult.Count > 0) logger.LogInformation("Synced {Count} movie(s) from Radarr", radarrResult.Count);
+        if (radarrResult.Count > 0)
+        {
+            logger.LogInformation("Synced {Count} movie(s) from Radarr", radarrResult.Count);
+        }
 
         await SyncMedia(context, radarrResult.Select(x => new MediaInfo
         {
@@ -54,7 +57,10 @@ public class ArrSyncService(
 
         // Sync Sonarr Series
         var sonarrResult = await arrApi.SyncSeries(sonarrCfg);
-        if (sonarrResult.Count > 0) logger.LogInformation("Synced {Count} series from Sonarr", sonarrResult.Count);
+        if (sonarrResult.Count > 0)
+        {
+            logger.LogInformation("Synced {Count} series from Sonarr", sonarrResult.Count);
+        }
 
         await SyncMedia(context, sonarrResult.Select(x => new MediaInfo
         {

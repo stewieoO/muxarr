@@ -84,7 +84,10 @@ public abstract class PaginatedListComponentBase : AuthStateComponent
 
     private void LoadDefaults()
     {
-        if (_filterProperties != null) return;
+        if (_filterProperties != null)
+        {
+            return;
+        }
 
         var props = GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
             .Where(f => f.GetCustomAttribute<FilterAttribute>() != null)
@@ -100,22 +103,39 @@ public abstract class PaginatedListComponentBase : AuthStateComponent
 
     private object? GetValue(MemberInfo member)
     {
-        if (member is PropertyInfo property) return property.GetValue(this);
-        if (member is FieldInfo field) return field.GetValue(this);
+        if (member is PropertyInfo property)
+        {
+            return property.GetValue(this);
+        }
+
+        if (member is FieldInfo field)
+        {
+            return field.GetValue(this);
+        }
+
         return null;
     }
 
     private void SetValue(MemberInfo member, object? value)
     {
         if (member is PropertyInfo property)
+        {
             property.SetValue(this, value);
-        else if (member is FieldInfo field) field.SetValue(this, value);
+        }
+        else if (member is FieldInfo field)
+        {
+            field.SetValue(this, value);
+        }
     }
 
     public void SaveFilters()
     {
         // Don't save when defaults are never loaded.
-        if (_filterProperties == null) return;
+        if (_filterProperties == null)
+        {
+            return;
+        }
+
         var state = new Dictionary<string, object?>();
         var hasActiveFilters = false;
         foreach (var property in _filterProperties!)
@@ -123,7 +143,10 @@ public abstract class PaginatedListComponentBase : AuthStateComponent
             var value = GetValue(property.Key);
             state[property.Key.Name] = value;
 
-            if (value?.ToString() != property.Value?.ToString()) hasActiveFilters = true;
+            if (value?.ToString() != property.Value?.ToString())
+            {
+                hasActiveFilters = true;
+            }
         }
 
         var cacheKey = GetCacheKey();
@@ -136,7 +159,10 @@ public abstract class PaginatedListComponentBase : AuthStateComponent
         LoadDefaults();
         var cacheKey = GetCacheKey();
 
-        if (reset) Cache.Remove(cacheKey);
+        if (reset)
+        {
+            Cache.Remove(cacheKey);
+        }
 
         var state = Cache.Get<Dictionary<string, object?>>(cacheKey);
         foreach (var (property, defaultValue) in _filterProperties!)
@@ -145,11 +171,17 @@ public abstract class PaginatedListComponentBase : AuthStateComponent
 
             if (state != null && state.TryGetValue(property.Name, out var value))
             {
-                if (currentValue != value) SetValue(property, value);
+                if (currentValue != value)
+                {
+                    SetValue(property, value);
+                }
             }
             else
             {
-                if (currentValue != defaultValue) SetValue(property, defaultValue); // The default value.
+                if (currentValue != defaultValue)
+                {
+                    SetValue(property, defaultValue); // The default value.
+                }
             }
         }
 

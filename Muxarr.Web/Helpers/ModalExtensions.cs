@@ -50,7 +50,10 @@ public static class ModalExtensions
         var result = modal.Show<CustomConversionModal>("Custom Conversion", parameters, options);
         var modalResult = await result.Result;
 
-        if (modalResult.Cancelled) return null;
+        if (modalResult.Cancelled)
+        {
+            return null;
+        }
 
         return (List<TrackSnapshot>?)modalResult.Data;
     }

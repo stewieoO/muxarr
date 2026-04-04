@@ -30,7 +30,7 @@
 }
 
 @code {
-    [Parameter][EditorRequired] public string Title { get; set; } = "";
+    [Parameter] [EditorRequired] public string Title { get; set; } = "";
     [Parameter] public string Icon { get; set; } = "bi-bar-chart";
     [Parameter] public List<DistributionEntry> Items { get; set; } = [];
     [Parameter] public int MaxItems { get; set; } = 10;

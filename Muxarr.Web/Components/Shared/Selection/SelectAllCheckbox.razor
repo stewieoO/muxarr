@@ -8,7 +8,7 @@
 </div>
 
 @code {
-	[Parameter][EditorRequired] public required SelectablePaginatedListComponent<TType> Parent { get; set; }
+	[Parameter] [EditorRequired] public required SelectablePaginatedListComponent<TType> Parent { get; set; }
 
 	private bool IsAllSelected => Parent.Items.All(item => Parent.SelectedItems.Contains(item));
 

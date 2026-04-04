@@ -15,7 +15,7 @@
 
 	[Parameter] public string? EmptyValue { get; set; }
 
-	[Parameter][EditorRequired] public IEnumerable<string> Items { get; set; } = [];
+	[Parameter] [EditorRequired] public IEnumerable<string> Items { get; set; } = [];
 
 	private async Task OnSelectionChanged(ChangeEventArgs e)
 	{

@@ -22,7 +22,7 @@
         };
     }
 
-    [Parameter][EditorRequired] public long SizeInBytes { get; set; }
+    [Parameter] [EditorRequired] public long SizeInBytes { get; set; }
 
     private double Size { get; set; }
     private string Suffix { get; set; } = "KB";

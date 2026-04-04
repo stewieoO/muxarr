@@ -66,7 +66,10 @@ await builder.RunWithLoggingAsync(async b =>
     }
 
     // HTTP pipeline
-    if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/Error", true);
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseExceptionHandler("/Error", true);
+    }
 
     app.UseStaticFiles();
     app.MapStaticAssets();

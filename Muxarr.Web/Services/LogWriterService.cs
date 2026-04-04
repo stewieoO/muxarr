@@ -18,7 +18,10 @@ public class LogWriterService(
 
     protected override async Task ExecuteAsync(CancellationToken token)
     {
-        if (sink.IsEmpty) return;
+        if (sink.IsEmpty)
+        {
+            return;
+        }
 
         using var scope = serviceScopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -44,7 +47,10 @@ public class LogWriterService(
     private static async Task PurgeOldEntries(AppDbContext context, CancellationToken token)
     {
         var count = await context.LogEntries.CountAsync(token);
-        if (count <= MaxEntries) return;
+        if (count <= MaxEntries)
+        {
+            return;
+        }
 
         // Find the ID cutoff: keep only the newest MaxEntries rows
         var cutoffId = await context.LogEntries
@@ -54,8 +60,10 @@ public class LogWriterService(
             .FirstOrDefaultAsync(token);
 
         if (cutoffId > 0)
+        {
             await context.LogEntries
                 .Where(x => x.Id <= cutoffId)
                 .ExecuteDeleteAsync(token);
+        }
     }
 }

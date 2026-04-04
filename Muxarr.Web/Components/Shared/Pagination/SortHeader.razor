@@ -8,8 +8,8 @@
 
 @code {
     [Parameter] public required RenderFragment ChildContent { get; set; }
-    [Parameter][EditorRequired] public required string SortProperty { get; set; }
-    [Parameter][EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
+    [Parameter] [EditorRequired] public required string SortProperty { get; set; }
+    [Parameter] [EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
 
     private string SortIcon => Parent.IsAscending switch
     {

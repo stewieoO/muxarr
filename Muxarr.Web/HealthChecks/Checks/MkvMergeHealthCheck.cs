@@ -12,7 +12,10 @@ public class MkvMergeHealthCheck(ILogger<MkvMergeHealthCheck> logger) : IHealthC
         {
             var result = await ProcessExecutor.ExecuteProcessAsync("mkvmerge", "--version", TimeSpan.FromSeconds(5));
 
-            if (result.ExitCode == 0) return HealthCheckResult.Healthy();
+            if (result.ExitCode == 0)
+            {
+                return HealthCheckResult.Healthy();
+            }
 
             return HealthCheckResult.Unhealthy($"mkvmerge exited with code {result.ExitCode}");
         }

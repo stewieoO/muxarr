@@ -22,7 +22,10 @@ public class TooltipService
 
     public void Hide()
     {
-        if (!IsVisible) return;
+        if (!IsVisible)
+        {
+            return;
+        }
 
         IsVisible = false;
         NotifySubscribers();
@@ -32,7 +35,10 @@ public class TooltipService
     {
         lock (_lock)
         {
-            if (!_subscribers.Contains(callback)) _subscribers.Add(callback);
+            if (!_subscribers.Contains(callback))
+            {
+                _subscribers.Add(callback);
+            }
         }
     }
 

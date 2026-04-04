@@ -6,7 +6,7 @@
 </ToolTip>
 
 @code {
-    [Parameter][EditorRequired] public DateTime DateTime { get; set; }
+    [Parameter] [EditorRequired] public DateTime DateTime { get; set; }
 
     private string TimeAgoText => GetTimeAgo(DateTime);
 

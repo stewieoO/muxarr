@@ -25,7 +25,10 @@ public class MediaScannerService(
         get;
         private set
         {
-            if (field == value) return;
+            if (field == value)
+            {
+                return;
+            }
 
             field = value;
             ScanningStateChanged?.Invoke(this, value);
@@ -107,13 +110,18 @@ public class MediaScannerService(
 
         foreach (var file in Directory.EnumerateFiles(directory, "*.*", SearchOption.AllDirectories))
         {
-            if (token.IsCancellationRequested) return;
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
 
             var ext = Path.GetExtension(file);
             if (string.IsNullOrEmpty(ext) ||
                 (!ext.Equals(".mkv", StringComparison.OrdinalIgnoreCase) &&
                  !ext.Equals(".mp4", StringComparison.OrdinalIgnoreCase)))
+            {
                 continue;
+            }
 
             await ScanFileCore(file, forceRescan, profile, context).ConfigureAwait(false);
             scanned++;
@@ -187,9 +195,15 @@ public class MediaScannerService(
                 else
                 {
                     // Fall back to metadata from webhook payload when MediaInfo hasn't been synced yet
-                    if (!string.IsNullOrEmpty(webhookTitle)) dbFile.Title = webhookTitle;
+                    if (!string.IsNullOrEmpty(webhookTitle))
+                    {
+                        dbFile.Title = webhookTitle;
+                    }
+
                     if (!string.IsNullOrEmpty(webhookOriginalLanguage))
+                    {
                         dbFile.OriginalLanguage = webhookOriginalLanguage;
+                    }
                 }
             }
 
@@ -198,7 +212,9 @@ public class MediaScannerService(
             {
                 var info = await MkvMerge.GetFileInfo(dbFile.Path);
                 if (!string.IsNullOrEmpty(info.Error))
+                {
                     logger.LogWarning("mkvmerge failed for '{Path}': {Error}", dbFile.Path, info.Error);
+                }
 
                 dbFile.MkvMergeOutput = !string.IsNullOrEmpty(info.Error) ? info.Error : info.Output;
                 dbFile.SetFileData(info.Result); // Set all tracks using mkvmerge output.
@@ -228,8 +244,10 @@ public class MediaScannerService(
         // If a directory is offline we leave its records intact and warn.
         var inaccessible = allDirectories.Where(d => !Directory.Exists(d)).ToList();
         if (inaccessible.Count > 0)
+        {
             logger.LogDebug("Skipping purge for {Count} inaccessible director(ies): {Directories}", inaccessible.Count,
                 string.Join(", ", inaccessible));
+        }
 
         // Project only Id/Path to avoid loading heavy JSON columns (Tracks, MkvMergeOutput) into memory
         var files = await context.MediaFiles

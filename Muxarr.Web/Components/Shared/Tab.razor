@@ -1,6 +1,6 @@
 @code {
     [CascadingParameter] private TabSet Parent { get; set; } = null!;
-    [Parameter][EditorRequired] public required string Title { get; set; } = "";
+    [Parameter] [EditorRequired] public required string Title { get; set; } = "";
     [Parameter] public RenderFragment ChildContent { get; set; } = null!;
     public string Name => Title.ToLower().Replace(" ", "").Replace("/", "-");
 

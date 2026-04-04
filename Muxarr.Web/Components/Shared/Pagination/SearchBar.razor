@@ -9,7 +9,7 @@
 @code {
     [Parameter] public string PlaceHolder { get; set; } = "Search...";
 
-    [Parameter][EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
+    [Parameter] [EditorRequired] public required PaginatedListComponentBase Parent { get; set; }
 
     private async Task HandleKeyUp(KeyboardEventArgs e)
     {
