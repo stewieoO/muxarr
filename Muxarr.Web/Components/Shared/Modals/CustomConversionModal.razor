@@ -1,7 +1,7 @@
 @using Muxarr.Web.Components.Pages.Library
 <div class="modal-body">
-    <p class="mb-3 text-body-secondary">Select which tracks to keep, reorder them, and edit their metadata. At least one
-        audio track is required.</p>
+    <p class="mb-3 text-body-secondary">Select which tracks to keep, reorder them, and edit their metadata. Use
+        <strong>Apply Profile</strong> below to start from a profile's settings. At least one audio track is required.</p>
 
     @if (_validationError)
     {
@@ -165,7 +165,6 @@
 @code {
     [CascadingParameter] public required BlazoredModalInstance BlazoredModal { get; set; }
     [Parameter] public ICollection<MediaTrack> Tracks { get; set; } = new List<MediaTrack>();
-    [Parameter] public List<MediaTrack> DefaultAllowedTracks { get; set; } = new();
     [Parameter] public string? OriginalLanguage { get; set; }
     [Parameter] public Profile? Profile { get; set; }
     [Parameter] public List<Profile> Profiles { get; set; } = new();
@@ -191,12 +190,9 @@
 
         _editableTracks = Tracks.Select(t => t.ToSnapshot()).ToList();
 
-        foreach (var track in _editableTracks.Where(t => t.Type == MediaTrackType.Video))
-        {
-            _selectedTrackIds.Add(track.TrackNumber);
-        }
-
-        foreach (var track in DefaultAllowedTracks)
+        // Start from raw file state: all tracks selected, no mutations applied.
+        // User can click "Apply Profile" to filter and mutate based on a profile.
+        foreach (var track in _editableTracks)
         {
             _selectedTrackIds.Add(track.TrackNumber);
         }
