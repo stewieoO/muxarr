@@ -1,5 +1,6 @@
 @using Muxarr.Core.Language
 @using Muxarr.Data.Entities
+@using Muxarr.Data.Extensions
 @using Muxarr.Web.Components.Pages.Library
 
 <div class="modal-body">
@@ -159,6 +160,7 @@
     [CascadingParameter] public required BlazoredModalInstance BlazoredModal { get; set; }
     [Parameter] public ICollection<MediaTrack> Tracks { get; set; } = new List<MediaTrack>();
     [Parameter] public List<MediaTrack> DefaultAllowedTracks { get; set; } = new();
+    [Parameter] public string? OriginalLanguage { get; set; }
     [Parameter] public Profile? Profile { get; set; }
     [Parameter] public List<Profile> Profiles { get; set; } = new();
 
@@ -215,7 +217,7 @@
         // Build a temporary MediaFile to run GetAllowedTracks against the selected profile.
         var tempFile = new MediaFile
         {
-            OriginalLanguage = _editableTracks.FirstOrDefault()?.LanguageName,
+            OriginalLanguage = OriginalLanguage,
             Tracks = Tracks.ToList()
         };
         tempFile.TrackCount = tempFile.Tracks.Count;
@@ -251,6 +253,11 @@
             var totalTracksOfType = _editableTracks.Count(t => t.Type == track.Type);
             track.ApplyTrackMutations(settings, totalTracksOfType, tempFile.OriginalLanguage);
         }
+
+        // Reassign default flags for selected tracks to match what the profile preview shows.
+        var selectedTracks = _editableTracks.Where(t => _selectedTrackIds.Contains(t.TrackNumber)).ToList();
+        MediaFileExtensions.ReassignPreviewDefaultFlags(selectedTracks, profile.AudioSettings, MediaTrackType.Audio);
+        MediaFileExtensions.ReassignPreviewDefaultFlags(selectedTracks, profile.SubtitleSettings, MediaTrackType.Subtitles);
 
         _validationError = false;
     }

@@ -37,11 +37,13 @@ public static class ModalExtensions
         ICollection<MediaTrack> tracks,
         List<MediaTrack> defaultAllowedTracks,
         List<Profile> profiles,
-        Profile? profile = null)
+        Profile? profile = null,
+        string? originalLanguage = null)
     {
         var parameters = new ModalParameters()
             .Add(nameof(CustomConversionModal.Tracks), tracks)
             .Add(nameof(CustomConversionModal.DefaultAllowedTracks), defaultAllowedTracks)
+            .Add(nameof(CustomConversionModal.OriginalLanguage), originalLanguage)
             .Add(nameof(CustomConversionModal.Profiles), profiles)
             .Add(nameof(CustomConversionModal.Profile), profile);
 

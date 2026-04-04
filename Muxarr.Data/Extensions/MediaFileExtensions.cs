@@ -339,8 +339,13 @@ public static class MediaFileExtensions
 
             if (settings.StandardizeTrackNames)
             {
-                var template = settings.ResolveTemplate(track);
-                var expected = track.ApplyTrackNameTemplate(template);
+                // Create a snapshot with corrected flags to match what conversion actually produces.
+                // Without this, flag-specific template overrides (e.g. SDH) would not be selected
+                // when the flag is only detectable from the track name.
+                var snapshot = track.ToSnapshot();
+                snapshot.CorrectFlagsFromTrackName();
+                var template = settings.ResolveTemplate(snapshot);
+                var expected = snapshot.ApplyTrackNameTemplate(template);
                 if (!string.Equals(track.TrackName, expected, StringComparison.Ordinal))
                 {
                     return true;
@@ -656,7 +661,7 @@ public static class MediaFileExtensions
     /// <summary>
     /// Preview variant of <see cref="ReassignDefaultFlags"/> for TrackSnapshot objects.
     /// </summary>
-    private static void ReassignPreviewDefaultFlags(List<TrackSnapshot> previews, TrackSettings? settings,
+    public static void ReassignPreviewDefaultFlags(List<TrackSnapshot> previews, TrackSettings? settings,
         MediaTrackType trackType)
     {
         if (settings is not { ApplyLanguagePriority: true })

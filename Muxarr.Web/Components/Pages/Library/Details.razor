@@ -218,7 +218,7 @@
 
     private async Task CustomConversion()
     {
-        var selectedTracks = await ModalService.ShowCustomConversion(File!.Tracks, AllowedTracks, _profiles, File.Profile);
+        var selectedTracks = await ModalService.ShowCustomConversion(File!.Tracks, AllowedTracks, _profiles, File.Profile, File.OriginalLanguage);
         if (selectedTracks == null)
         {
             return;
