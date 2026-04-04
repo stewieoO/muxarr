@@ -326,6 +326,9 @@ public class MediaConverterService(
             else
             {
                 conversion.Log("File already optimized, skipping.", logger);
+                conversion.SizeAfter = conversion.SizeBefore;
+                conversion.TracksAfter = conversion.MediaFile.Tracks.ToSnapshots();
+                conversion.SizeDifference = 0;
                 conversion.State = ConversionState.Completed;
             }
 
