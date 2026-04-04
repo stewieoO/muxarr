@@ -1,55 +1,81 @@
-<table class="table table-sm">
+<table class="table table-sm mb-0">
     <thead>
     <tr>
-        <th>ID</th>
+        <th style="width: 35px;">#</th>
         <th>Language</th>
         <th>Format</th>
-        <th>Info</th>
+        <th>Details</th>
+        <th style="width: 50px;"></th>
     </tr>
     </thead>
     <tbody>
-    @foreach (var track in OrderedTracks)
+    @foreach (var item in KeptTracks)
     {
-        var preview = PreviewTracks?.FirstOrDefault(p => p.TrackNumber == track.TrackNumber);
-        var isRemoved = PreviewTracks != null && preview == null;
-        <MediaTrackDetail Track="track"
-                          IsAllowed="!isRemoved"
+        <MediaTrackDetail Track="item.Original"
+                          Preview="item.Preview"
                           OriginalLanguage="@OriginalLanguage"
-                          Preview="preview"/>
+                          PositionChange="item.PositionChange"/>
+    }
+    @foreach (var track in RemovedTracks)
+    {
+        <tr class="opacity-50">
+            <td>@track.TrackNumber</td>
+            <td>
+                <MediaTrackLabel Track="track" ShowAllFlags="true"/>
+            </td>
+            <td><code>@track.Codec.FormatCodec()</code></td>
+            <td></td>
+            <td><i class="bi bi-x-circle-fill text-danger"></i></td>
+        </tr>
     }
     </tbody>
 </table>
 
 @code {
-    [Parameter][EditorRequired] public IEnumerable<IMediaTrack> Tracks { get; set; } = default!;
-
+    [Parameter] [EditorRequired] public IEnumerable<IMediaTrack> Tracks { get; set; } = default!;
     [Parameter] public List<TrackSnapshot>? PreviewTracks { get; set; }
+    [Parameter] [EditorRequired] public string? OriginalLanguage { get; set; }
 
-    [Parameter][EditorRequired] public string? OriginalLanguage { get; set; }
+    private record TrackWithPreview(IMediaTrack Original, TrackSnapshot? Preview, int? PositionChange);
 
-    /// <summary>
-    ///     When preview tracks are available, renders kept tracks in their new priority order
-    ///     with removed tracks appended at the end. Otherwise uses source order.
-    /// </summary>
-    private IEnumerable<IMediaTrack> OrderedTracks
+    private List<TrackWithPreview> KeptTracks { get; set; } = [];
+    private List<IMediaTrack> RemovedTracks { get; set; } = [];
+
+    protected override void OnParametersSet()
     {
-        get
+        if (PreviewTracks == null || PreviewTracks.Count == 0)
         {
-            if (PreviewTracks == null || PreviewTracks.Count == 0)
-            {
-                return Tracks;
-            }
-
-            var previewOrder = new Dictionary<int, int>();
-            for (var i = 0; i < PreviewTracks.Count; i++)
-            {
-                previewOrder[PreviewTracks[i].TrackNumber] = i;
-            }
-
-            return Tracks
-                .OrderBy(t => previewOrder.TryGetValue(t.TrackNumber, out var pos) ? pos : int.MaxValue)
-                .ThenBy(t => t.TrackNumber);
+            KeptTracks = Tracks.Select(t => new TrackWithPreview(t, null, null)).ToList();
+            RemovedTracks = [];
+            return;
         }
+
+        var previewByNumber = PreviewTracks.ToDictionary(p => p.TrackNumber);
+        var originalPositions = Tracks.Select((t, i) => (t.TrackNumber, Index: i))
+            .ToDictionary(x => x.TrackNumber, x => x.Index);
+
+        // Kept tracks in preview order (the future state)
+        KeptTracks = [];
+        for (var i = 0; i < PreviewTracks.Count; i++)
+        {
+            var preview = PreviewTracks[i];
+            var original = Tracks.FirstOrDefault(t => t.TrackNumber == preview.TrackNumber);
+            if (original == null)
+            {
+                continue;
+            }
+
+            int? posChange = null;
+            if (originalPositions.TryGetValue(preview.TrackNumber, out var origPos) && origPos != i)
+            {
+                posChange = i - origPos;
+            }
+
+            KeptTracks.Add(new TrackWithPreview(original, preview, posChange));
+        }
+
+        // Removed tracks (in original not in preview)
+        RemovedTracks = Tracks.Where(t => !previewByNumber.ContainsKey(t.TrackNumber)).ToList();
     }
 
 }

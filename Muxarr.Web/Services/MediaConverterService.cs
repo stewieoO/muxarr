@@ -31,7 +31,10 @@ public class MediaConverterService(
         logger.LogInformation("Conversion queue {State}", IsPaused ? "paused" : "resumed");
         QueueStateChanged?.Invoke(this, EventArgs.Empty);
 
-        if (!IsPaused) _ = RunAsync(CancellationToken.None);
+        if (!IsPaused)
+        {
+            _ = RunAsync(CancellationToken.None);
+        }
     }
 
     public void CancelCurrentConversion()
@@ -96,7 +99,10 @@ public class MediaConverterService(
             await CleanupMuxbakFiles(context);
         }
 
-        if (IsPaused) return;
+        if (IsPaused)
+        {
+            return;
+        }
 
         var conversion = await context.MediaConversions
             .Include(x => x.MediaFile)
@@ -106,7 +112,10 @@ public class MediaConverterService(
             .Where(x => x.State == ConversionState.New)
             .FirstOrDefaultAsync(stoppingToken);
 
-        if (conversion == null) return;
+        if (conversion == null)
+        {
+            return;
+        }
 
         _currentConversionCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         try
@@ -120,7 +129,10 @@ public class MediaConverterService(
         }
 
         // Keep running.
-        if (!IsPaused) _ = RunAsync(stoppingToken);
+        if (!IsPaused)
+        {
+            _ = RunAsync(stoppingToken);
+        }
     }
 
     public async Task<bool> AddMediaToQueue(MediaFile media)
@@ -228,8 +240,11 @@ public class MediaConverterService(
         // Prevents stale AllowedTracks from a previous conversion or outdated scan.
         await scanner.ScanMediaFile(conversion.MediaFile, true, context, conversion.MediaFile.Profile);
         if (!conversion.IsCustomConversion)
+        {
             conversion.AllowedTracks =
                 conversion.MediaFile.GetAllowedTracks(conversion.MediaFile.Profile).ToSnapshots();
+        }
+
         conversion.TracksBefore = conversion.MediaFile.Tracks.ToSnapshots();
         conversion.SizeBefore = conversion.MediaFile.Size;
 
@@ -344,7 +359,10 @@ public class MediaConverterService(
                 {
                     // mkvmerge is ~95% of total work; validation + file swap are near-instant.
                     var newProgress = (int)(progress * 0.95);
-                    if (!line.StartsWith("Progress")) conversion.Log(line, logger);
+                    if (!line.StartsWith("Progress"))
+                    {
+                        conversion.Log(line, logger);
+                    }
 
                     if (newProgress != lastReportedProgress)
                     {
@@ -358,17 +376,24 @@ public class MediaConverterService(
             token.ThrowIfCancellationRequested();
 
             if (!MkvMerge.IsSuccess(result))
+            {
                 throw new Exception(
                     $"Error during mux for: {conversion.MediaFile.GetName()}. Error: {result.Error} Output: {result.Output}");
+            }
 
             if (result.ExitCode == 1)
+            {
                 conversion.Log($"Mux completed with warnings for {conversion.MediaFile.GetName()}.", logger);
+            }
 
             conversion.Log($"Finished mux for {conversion.MediaFile.GetName()}.", logger);
             await context.SaveChangesAsync(token);
 
             var fileInfo = new FileInfo(tmp);
-            if (!fileInfo.Exists || fileInfo.Length == 0) throw new Exception("Something happened to the output file!");
+            if (!fileInfo.Exists || fileInfo.Length == 0)
+            {
+                throw new Exception("Something happened to the output file!");
+            }
 
             var info = await MkvMerge.GetFileInfo(tmp);
             var count = (info.Result?.Tracks
@@ -376,7 +401,10 @@ public class MediaConverterService(
                 .GetValueOrDefault(0); // Only count audio/subtitle tracks.
 
             if (count != conversion.AllowedTracks.Count)
+            {
                 throw new Exception($"Trackcount was {count}. Expected: {conversion.AllowedTracks.Count}");
+            }
+
             conversion.Log("Validation of new file is ok!", logger);
             ConverterStateChanged?.Invoke(this, new ConverterProgressEvent(conversion));
 
@@ -475,6 +503,7 @@ public class MediaConverterService(
         foreach (var stuckConversion in stuckConversions)
         {
             if (!string.IsNullOrEmpty(stuckConversion.TempFilePath) && File.Exists(stuckConversion.TempFilePath))
+            {
                 try
                 {
                     stuckConversion.Log($"Cleaning up temp file: {Path.GetFileName(stuckConversion.TempFilePath)}",
@@ -485,6 +514,7 @@ public class MediaConverterService(
                 {
                     stuckConversion.LogError($"Failed to clean up temp file: {ex.Message}", logger);
                 }
+            }
 
             stuckConversion.LogError(
                 $"Conversion state for {stuckConversion.MediaFile?.GetName()} is in progress on startup. " +
@@ -501,7 +531,10 @@ public class MediaConverterService(
 
         foreach (var directory in directories)
         {
-            if (!Directory.Exists(directory)) continue;
+            if (!Directory.Exists(directory))
+            {
+                continue;
+            }
 
             // Clean up orphaned temp files from conversions
             foreach (var muxtmpFile in Directory.EnumerateFiles(directory, "*.muxtmp", SearchOption.AllDirectories))
@@ -555,7 +588,10 @@ public class MediaConverterService(
     private async Task RunPostProcessing(MediaConversion conversion, AppDbContext context)
     {
         var config = context.Configs.GetOrDefault<PostProcessingConfig>();
-        if (!config.Enabled || string.IsNullOrWhiteSpace(config.Command)) return;
+        if (!config.Enabled || string.IsNullOrWhiteSpace(config.Command))
+        {
+            return;
+        }
 
         var resolvedCommand = config.ResolveCommand(conversion.MediaFile!.Path);
         conversion.Log($"Running post-processing: {resolvedCommand}", logger);
@@ -567,13 +603,17 @@ public class MediaConverterService(
                 TimeSpan.FromMinutes(5));
 
             if (!string.IsNullOrWhiteSpace(result.Output))
+            {
                 conversion.Log($"Post-processing output: {result.Output.Trim()}", logger);
+            }
 
             if (!result.Success)
             {
                 conversion.Log($"Post-processing exited with code {result.ExitCode}.", logger, true);
                 if (!string.IsNullOrWhiteSpace(result.Error))
+                {
                     conversion.Log($"Post-processing error: {result.Error.Trim()}", logger, true);
+                }
             }
             else
             {

@@ -3,55 +3,81 @@
         @Track.TrackNumber
     </td>
     <td>
-        <MediaTrackLabel Track="Track" ShowAllFlags="true"></MediaTrackLabel>
+        <MediaTrackLabel Track="Track" ShowAllFlags="true"/>
         @if (ResolvedLanguage != null)
         {
-            <i class="bi bi-arrow-right text-info mx-1"></i>
+            <i class="bi bi-arrow-right text-info mx-1" style="font-size: 0.7rem;"></i>
             <span class="badge bg-info text-white">@ResolvedLanguage</span>
         }
-
         @if (DisplayLanguage == OriginalLanguage)
         {
             <ToolTip
                 Tip="@(ResolvedLanguage != null ? $"Undetermined -> {ResolvedLanguage} (original language)" : "Original Language")">
-                <i class="bi bi-star-fill text-warning ms-2"></i>
-            </ToolTip>
-        }
-        @if (!IsAllowed)
-        {
-            <ToolTip Tip="Redundant track - will be removed">
-                <i class="bi bi-x-circle-fill text-danger ms-2"></i>
+                <i class="bi bi-star-fill text-warning ms-1" style="font-size: 0.65rem;"></i>
             </ToolTip>
         }
     </td>
     <td><code>@Track.Codec.FormatCodec()</code></td>
     <td>
-        @if (HasMetadataChange)
+        @* Track name changes *@
+        @if (HasTrackNameChange)
         {
-            <ToolTip Tip="@MetadataChangeTip">
-                <i class="bi bi-pencil-square text-info me-2"></i>
+            @if (!string.IsNullOrEmpty(Track.TrackName))
+            {
+                <span class="text-muted small text-decoration-line-through me-1">@Track.TrackName</span>
+            }
+
+            @if (!string.IsNullOrEmpty(Preview?.TrackName))
+            {
+                <span class="small text-info">@Preview.TrackName</span>
+            }
+            else if (!string.IsNullOrEmpty(Track.TrackName))
+            {
+                <span class="small text-muted fst-italic">(cleared)</span>
+            }
+        }
+        else if (!string.IsNullOrEmpty(Track.TrackName))
+        {
+            <span class="text-muted small">@Track.TrackName</span>
+        }
+
+        @* Flag changes - shown as small inline badges *@
+        @if (FlagChanges.Count > 0)
+        {
+            <div class="mt-1">
+                @foreach (var change in FlagChanges)
+                {
+                    <span class="badge @(change.NewValue ? "bg-info" : "bg-secondary") me-1"
+                          style="font-size: 0.65rem;">
+                        @(change.NewValue ? "+" : "-")@change.Label
+                    </span>
+                }
+            </div>
+        }
+    </td>
+    <td class="text-center">
+        @if (PositionChange is < 0)
+        {
+            <ToolTip Tip="@($"Moved up {Math.Abs(PositionChange.Value)} position(s)")">
+                <i class="bi bi-arrow-up-short text-info"></i>
             </ToolTip>
         }
-        @if (!string.IsNullOrEmpty(Track.TrackName))
+        else if (PositionChange is > 0)
         {
-            <span
-                class="text-muted small me-2 @(HasTrackNameChange ? "text-decoration-line-through" : "")">@Track.TrackName</span>
-        }
-        @if (HasTrackNameChange && !string.IsNullOrEmpty(Preview?.TrackName))
-        {
-            <span class="small text-info">@Preview.TrackName</span>
+            <ToolTip Tip="@($"Moved down {PositionChange.Value} position(s)")">
+                <i class="bi bi-arrow-down-short text-warning"></i>
+            </ToolTip>
         }
     </td>
 </tr>
 
 @code {
-    [Parameter][EditorRequired] public IMediaTrack Track { get; set; } = default!;
-
-    [Parameter][EditorRequired] public bool IsAllowed { get; set; }
-
-    [Parameter][EditorRequired] public string? OriginalLanguage { get; set; }
-
+    [Parameter] [EditorRequired] public IMediaTrack Track { get; set; } = default!;
+    [Parameter] [EditorRequired] public string? OriginalLanguage { get; set; }
     [Parameter] public TrackSnapshot? Preview { get; set; }
+    [Parameter] public int? PositionChange { get; set; }
+
+    private record FlagChange(string Label, bool NewValue);
 
     private string? ResolvedLanguage =>
         Preview != null && Preview.LanguageName != Track.LanguageName ? Preview.LanguageName : null;
@@ -61,41 +87,42 @@
     private bool HasTrackNameChange =>
         Preview != null && !string.Equals(Track.TrackName ?? "", Preview.TrackName ?? "", StringComparison.Ordinal);
 
-    private bool HasMetadataChange =>
-        HasTrackNameChange
-        || (Preview != null && (
-            Preview.LanguageName != Track.LanguageName
-            || Preview.IsDefault != Track.IsDefault
-            || Preview.IsForced != Track.IsForced));
-
-    private string MetadataChangeTip
+    private List<FlagChange> FlagChanges
     {
         get
         {
-            var parts = new List<string>();
-            if (Preview != null && Preview.LanguageName != Track.LanguageName)
+            if (Preview == null)
             {
-                parts.Add($"Language: {Track.LanguageName} → {Preview.LanguageName}");
+                return [];
             }
 
-            if (Preview != null && !string.Equals(Track.TrackName ?? "", Preview.TrackName ?? "", StringComparison.Ordinal))
+            var changes = new List<FlagChange>();
+            if (Preview.IsDefault != Track.IsDefault)
             {
-                parts.Add(string.IsNullOrEmpty(Preview.TrackName)
-                    ? "Track name will be cleared"
-                    : $"Track name → {Preview.TrackName}");
+                changes.Add(new FlagChange("Default", Preview.IsDefault));
             }
 
-            if (Preview != null && Preview.IsDefault != Track.IsDefault)
+            if (Preview.IsForced != Track.IsForced)
             {
-                parts.Add(Preview.IsDefault ? "Will be set as default" : "Will be unset as default");
+                changes.Add(new FlagChange("Forced", Preview.IsForced));
             }
 
-            if (Preview != null && Preview.IsForced != Track.IsForced)
+            if (Preview.IsHearingImpaired != Track.IsHearingImpaired)
             {
-                parts.Add(Preview.IsForced ? "Will be set as forced" : "Will be unset as forced");
+                changes.Add(new FlagChange("SDH", Preview.IsHearingImpaired));
             }
 
-            return string.Join("\n", parts);
+            if (Preview.IsCommentary != Track.IsCommentary)
+            {
+                changes.Add(new FlagChange("Commentary", Preview.IsCommentary));
+            }
+
+            if (Preview.IsVisualImpaired != Track.IsVisualImpaired)
+            {
+                changes.Add(new FlagChange("AD", Preview.IsVisualImpaired));
+            }
+
+            return changes;
         }
     }
 

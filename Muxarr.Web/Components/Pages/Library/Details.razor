@@ -89,12 +89,20 @@
                 <div class="d-flex align-items-center mb-3">
                     <i class="bi bi-collection text-primary me-2"></i>
                     <h5 class="mb-0">Media Tracks</h5>
+                    @if (File.Profile != null && PreviewTracks != null)
+                    {
+                        <div class="form-check form-switch ms-auto mb-0">
+                            <input type="checkbox" class="form-check-input" id="previewToggle"
+                                   checked="@_showPreview" @onchange="() => _showPreview = !_showPreview"/>
+                            <label class="form-check-label small text-muted" for="previewToggle">Preview</label>
+                        </div>
+                    }
                 </div>
                 <div style="overflow: visible;">
                     @if (File.Tracks.Any())
                     {
                         <MediaTrackDetailTable Tracks="File.Tracks"
-                                               PreviewTracks="PreviewTracks"
+                                               PreviewTracks="_showPreview ? PreviewTracks : null"
                                                OriginalLanguage="@File.OriginalLanguage"/>
                     }
                     else
@@ -149,9 +157,9 @@
     [Parameter] public int Id { get; set; }
 
     protected MediaFile? File { get; set; }
-    protected List<MediaTrack> AllowedTracks { get; set; } = new();
     protected List<TrackSnapshot>? PreviewTracks { get; set; }
     private List<Profile> _profiles = new();
+    private bool _showPreview = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -175,7 +183,6 @@
 
         // Needed to fix order.
         File.Conversions = File.Conversions.OrderByDescending(x => x.CreatedDate).ToList();
-        AllowedTracks = File.GetAllowedTracks(File.Profile);
         PreviewTracks = File.GetPreviewTracks(File.Profile);
         _profiles = await context.Profiles.OrderBy(p => p.Name).ToListAsync();
     }
@@ -220,7 +227,7 @@
 
     private async Task CustomConversion()
     {
-        var selectedTracks = await ModalService.ShowCustomConversion(File!.Tracks, AllowedTracks, _profiles, File.Profile, File.OriginalLanguage);
+        var selectedTracks = await ModalService.ShowCustomConversion(File!.Tracks, File.GetAllowedTracks(File.Profile), _profiles, File.Profile, File.OriginalLanguage);
         if (selectedTracks == null)
         {
             return;
