@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,7 @@ public static class Configurator
 
     public static async Task Initialize(this AppDbContext context)
     {
+        await BackupBeforeMigration(context);
         await context.Database.MigrateAsync();
         await context.Database.ExecuteSqlRawAsync(SqlitePerformanceInterceptor.InitializationPragma);
 
@@ -48,5 +50,31 @@ public static class Configurator
             context.Configs.Set(webhookConfig);
             await context.SaveChangesAsync();
         }
+    }
+
+    /// <summary>
+    /// Backs up the SQLite database file before running migrations.
+    /// Only creates a backup when there are pending migrations (i.e., an actual schema change).
+    /// Keeps the single most recent backup as muxarr.db.bak.
+    /// </summary>
+    private static async Task BackupBeforeMigration(AppDbContext context)
+    {
+        var pending = await context.Database.GetPendingMigrationsAsync();
+        if (!pending.Any())
+        {
+            return;
+        }
+
+        var dbPath = context.Database.GetDbConnection().DataSource;
+        if (string.IsNullOrEmpty(dbPath) || !File.Exists(dbPath))
+        {
+            return;
+        }
+
+        // Flush WAL to the main database file so the backup is self-contained.
+        await context.Database.ExecuteSqlRawAsync(SqlitePerformanceInterceptor.FlushWalPragma);
+
+        var backupPath = dbPath + ".bak";
+        File.Copy(dbPath, backupPath, overwrite: true);
     }
 }

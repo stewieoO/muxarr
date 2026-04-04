@@ -16,10 +16,14 @@ public class SqlitePerformanceInterceptor : DbConnectionInterceptor
     // not on every connection. Call InitializationPragma during app startup (after migrations).
     public const string InitializationPragma = "PRAGMA journal_mode=WAL;";
 
+    // Flushes all WAL pages into the main database file and resets the WAL.
+    // Used before backing up the .db file so the backup is self-contained.
+    public const string FlushWalPragma = "PRAGMA wal_checkpoint(TRUNCATE);";
+
     private const string ConnectionPragmas =
         // Wait up to 1 second when another connection holds a write lock, instead of failing immediately.
         "PRAGMA busy_timeout=1000; " +
-        // Safe with WAL mode. Faster than the default FULL — skips redundant fsync calls.
+        // Safe with WAL mode. Faster than the default FULL, skips redundant fsync calls.
         "PRAGMA synchronous=NORMAL; " +
         // Keep temporary tables and indices in memory instead of writing them to disk.
         "PRAGMA temp_store=MEMORY; " +
