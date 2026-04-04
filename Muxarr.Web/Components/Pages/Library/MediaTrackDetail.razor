@@ -1,6 +1,17 @@
 <tr>
     <td>
-        @Track.TrackNumber
+        @if (IsReordered)
+        {
+            <ToolTip Tip="@($"Moved from position {MovedFromPosition}")">
+                <span class="badge bg-primary-subtle text-primary-emphasis">
+                    <i class="bi bi-arrow-down-up"></i>
+                </span>
+            </ToolTip>
+        }
+        else
+        {
+            @Track.TrackNumber
+        }
     </td>
     <td>
         <MediaTrackLabel Track="Track" ShowAllFlags="true"/>
@@ -11,8 +22,7 @@
         }
         @if (DisplayLanguage == OriginalLanguage)
         {
-            <ToolTip
-                Tip="@(ResolvedLanguage != null ? $"Undetermined -> {ResolvedLanguage} (original language)" : "Original Language")">
+            <ToolTip Tip="@(ResolvedLanguage != null ? $"Undetermined -> {ResolvedLanguage} (original language)" : "Original Language")">
                 <i class="bi bi-star-fill text-warning ms-1" style="font-size: 0.65rem;"></i>
             </ToolTip>
         }
@@ -26,7 +36,6 @@
             {
                 <span class="text-muted small text-decoration-line-through me-1">@Track.TrackName</span>
             }
-
             @if (!string.IsNullOrEmpty(Preview?.TrackName))
             {
                 <span class="small text-info">@Preview.TrackName</span>
@@ -55,29 +64,17 @@
             </div>
         }
     </td>
-    <td class="text-center">
-        @if (PositionChange is < 0)
-        {
-            <ToolTip Tip="@($"Moved up {Math.Abs(PositionChange.Value)} position(s)")">
-                <i class="bi bi-arrow-up-short text-info"></i>
-            </ToolTip>
-        }
-        else if (PositionChange is > 0)
-        {
-            <ToolTip Tip="@($"Moved down {PositionChange.Value} position(s)")">
-                <i class="bi bi-arrow-down-short text-warning"></i>
-            </ToolTip>
-        }
-    </td>
 </tr>
 
 @code {
     [Parameter] [EditorRequired] public IMediaTrack Track { get; set; } = default!;
     [Parameter] [EditorRequired] public string? OriginalLanguage { get; set; }
     [Parameter] public TrackSnapshot? Preview { get; set; }
-    [Parameter] public int? PositionChange { get; set; }
+    [Parameter] public int? MovedFromPosition { get; set; }
 
     private record FlagChange(string Label, bool NewValue);
+
+    private bool IsReordered => MovedFromPosition.HasValue;
 
     private string? ResolvedLanguage =>
         Preview != null && Preview.LanguageName != Track.LanguageName ? Preview.LanguageName : null;
@@ -101,29 +98,23 @@
             {
                 changes.Add(new FlagChange("Default", Preview.IsDefault));
             }
-
             if (Preview.IsForced != Track.IsForced)
             {
                 changes.Add(new FlagChange("Forced", Preview.IsForced));
             }
-
             if (Preview.IsHearingImpaired != Track.IsHearingImpaired)
             {
                 changes.Add(new FlagChange("SDH", Preview.IsHearingImpaired));
             }
-
             if (Preview.IsCommentary != Track.IsCommentary)
             {
                 changes.Add(new FlagChange("Commentary", Preview.IsCommentary));
             }
-
             if (Preview.IsVisualImpaired != Track.IsVisualImpaired)
             {
                 changes.Add(new FlagChange("AD", Preview.IsVisualImpaired));
             }
-
             return changes;
         }
     }
-
 }

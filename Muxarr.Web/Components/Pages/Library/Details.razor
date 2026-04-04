@@ -27,7 +27,7 @@
         var isOverride = _selectedProfileId != File.ProfileId;
         var assignedProfileName = File.Profile?.Name ?? "none";
     }
-    <div class="border rounded p-3 mb-4 @(isOverride ? "border-warning" : "")">
+    <div class="border rounded p-3 mb-4 @(isOverride ? "border-info" : "")">
         @if (_profiles.Count > 0)
         {
             <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
@@ -51,8 +51,8 @@
 
             @if (isOverride)
             {
-                <div class="alert alert-warning py-2 px-3 mb-3 small">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <div class="alert alert-info py-2 px-3 mb-3 small">
+                    <i class="bi bi-info-circle-fill me-2"></i>
                     This file is assigned to <strong>@assignedProfileName</strong>. Queueing will use
                     <strong>@_selectedProfile?.Name</strong> as a one-time override.
                 </div>

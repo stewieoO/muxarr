@@ -5,7 +5,6 @@
         <th>Language</th>
         <th>Format</th>
         <th>Details</th>
-        <th style="width: 50px;"></th>
     </tr>
     </thead>
     <tbody>
@@ -14,7 +13,7 @@
         <MediaTrackDetail Track="item.Original"
                           Preview="item.Preview"
                           OriginalLanguage="@OriginalLanguage"
-                          PositionChange="item.PositionChange"/>
+                          MovedFromPosition="item.MovedFromPosition"/>
     }
     @foreach (var track in RemovedTracks)
     {
@@ -24,8 +23,7 @@
                 <MediaTrackLabel Track="track" ShowAllFlags="true"/>
             </td>
             <td><code>@track.Codec.FormatCodec()</code></td>
-            <td></td>
-            <td><i class="bi bi-x-circle-fill text-danger"></i></td>
+            <td><i class="bi bi-x-circle-fill text-danger"></i> will be removed</td>
         </tr>
     }
     </tbody>
@@ -36,7 +34,7 @@
     [Parameter] public List<TrackSnapshot>? PreviewTracks { get; set; }
     [Parameter] [EditorRequired] public string? OriginalLanguage { get; set; }
 
-    private record TrackWithPreview(IMediaTrack Original, TrackSnapshot? Preview, int? PositionChange);
+    private record TrackWithPreview(IMediaTrack Original, TrackSnapshot? Preview, int? MovedFromPosition);
 
     private List<TrackWithPreview> KeptTracks { get; set; } = [];
     private List<IMediaTrack> RemovedTracks { get; set; } = [];
@@ -54,7 +52,6 @@
         var originalPositions = Tracks.Select((t, i) => (t.TrackNumber, Index: i))
             .ToDictionary(x => x.TrackNumber, x => x.Index);
 
-        // Kept tracks in preview order (the future state)
         KeptTracks = [];
         for (var i = 0; i < PreviewTracks.Count; i++)
         {
@@ -65,17 +62,15 @@
                 continue;
             }
 
-            int? posChange = null;
-            if (originalPositions.TryGetValue(preview.TrackNumber, out var origPos) && origPos != i)
+            int? movedFrom = null;
+            if (originalPositions.TryGetValue(preview.TrackNumber, out var origIdx) && origIdx != i)
             {
-                posChange = i - origPos;
+                movedFrom = origIdx + 1;
             }
 
-            KeptTracks.Add(new TrackWithPreview(original, preview, posChange));
+            KeptTracks.Add(new TrackWithPreview(original, preview, movedFrom));
         }
 
-        // Removed tracks (in original not in preview)
         RemovedTracks = Tracks.Where(t => !previewByNumber.ContainsKey(t.TrackNumber)).ToList();
     }
-
 }
