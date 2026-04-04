@@ -66,6 +66,68 @@ public class IsoLanguageTests
         Assert.AreEqual("Unknown", IsoLanguage.Find("xyznotreal", fuzzySearch: true).Name);
     }
 
+    // --- Search ranking ---
+
+    [TestMethod]
+    public void Search_EnglishQuery_RanksEnglishFirst()
+    {
+        // Regression: "English" was buried below "Creoles and pidgins, English based" and "English, Middle"
+        var results = IsoLanguage.Search("english").ToList();
+        Assert.AreEqual("English", results[0].Name);
+    }
+
+    [TestMethod]
+    public void Search_TwoLetterCodeExactMatch_RanksFirst()
+    {
+        var results = IsoLanguage.Search("en").ToList();
+        Assert.AreEqual("English", results[0].Name);
+    }
+
+    [TestMethod]
+    public void Search_ThreeLetterCodeExactMatch_RanksFirst()
+    {
+        var results = IsoLanguage.Search("eng").ToList();
+        Assert.AreEqual("English", results[0].Name);
+    }
+
+    [TestMethod]
+    public void Search_NativeNameMatch_ReturnsLanguage()
+    {
+        var results = IsoLanguage.Search("Nederlands").ToList();
+        Assert.AreEqual("Dutch", results[0].Name);
+    }
+
+    [TestMethod]
+    public void Search_CaseInsensitive()
+    {
+        var lower = IsoLanguage.Search("english").First().Name;
+        var upper = IsoLanguage.Search("ENGLISH").First().Name;
+        Assert.AreEqual(lower, upper);
+        Assert.AreEqual("English", lower);
+    }
+
+    [TestMethod]
+    public void Search_EmptyInput_ReturnsEmpty()
+    {
+        Assert.AreEqual(0, IsoLanguage.Search("").Count());
+        Assert.AreEqual(0, IsoLanguage.Search("   ").Count());
+    }
+
+    [TestMethod]
+    public void Search_NoMatch_ReturnsEmpty()
+    {
+        Assert.AreEqual(0, IsoLanguage.Search("xyznotareallanguage").Count());
+    }
+
+    [TestMethod]
+    public void Search_MainstreamLanguageBeatsObscure_WhenSameMatchTier()
+    {
+        // Both "Spanish" (has 639-1 "es") and more obscure languages contain "sp" as substring.
+        // Spanish should outrank obscure substring-only matches.
+        var results = IsoLanguage.Search("spanish").ToList();
+        Assert.AreEqual("Spanish", results[0].Name);
+    }
+
     // --- Invalid input ---
 
     [TestMethod]

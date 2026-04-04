@@ -114,17 +114,51 @@ public class IsoLanguage(string name, string displayName, string twoLetterCode, 
 
     public static IEnumerable<IsoLanguage> Search(string input)
     {
-        foreach (var culture in Languages)
+        if (string.IsNullOrWhiteSpace(input))
         {
-            if (culture.DisplayName.Contains(input, StringComparison.InvariantCultureIgnoreCase)
-                || culture.Name.Contains(input, StringComparison.InvariantCultureIgnoreCase)
-                || culture.NativeName.Contains(input, StringComparison.InvariantCultureIgnoreCase)
-                || culture.ThreeLetterCodes.Any(code => code.Contains(input, StringComparison.InvariantCultureIgnoreCase))
-                || culture.TwoLetterCode.Contains(input, StringComparison.InvariantCultureIgnoreCase))
-            {
-                yield return culture;
-            }
+            return [];
         }
+
+        return Languages
+            .Select(lang => (Language: lang, Score: ScoreMatch(lang, input)))
+            .Where(x => x.Score > 0)
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.Language.Name, StringComparer.InvariantCultureIgnoreCase)
+            .Select(x => x.Language);
+    }
+
+    /// <summary>
+    /// Relevance score for a language against a search input.
+    /// Higher = more relevant. Exact matches beat prefixes beat substrings.
+    /// Languages with an ISO 639-1 two-letter code get a small bonus as they're generally more mainstream.
+    /// </summary>
+    private static int ScoreMatch(IsoLanguage lang, string input)
+    {
+        const StringComparison ic = StringComparison.InvariantCultureIgnoreCase;
+        int score;
+
+        // Exact matches
+        if (lang.Name.Equals(input, ic)) score = 1000;
+        else if (lang.NativeName.Equals(input, ic)) score = 950;
+        else if (lang.TwoLetterCode.Equals(input, ic)) score = 900;
+        else if (lang.ThreeLetterCodes.Any(c => c.Equals(input, ic))) score = 850;
+        // Prefix matches
+        else if (lang.Name.StartsWith(input, ic)) score = 500;
+        else if (lang.NativeName.StartsWith(input, ic)) score = 450;
+        // Substring matches
+        else if (lang.Name.Contains(input, ic)) score = 200;
+        else if (lang.NativeName.Contains(input, ic)) score = 150;
+        else if (lang.ThreeLetterCodes.Any(c => c.Contains(input, ic))) score = 100;
+        else if (lang.TwoLetterCode.Contains(input, ic)) score = 50;
+        else return 0;
+
+        // Mainstream bonus: languages with an ISO 639-1 two-letter code are more common
+        if (!string.IsNullOrEmpty(lang.TwoLetterCode) && lang.TwoLetterCode.Length == 2)
+        {
+            score += 25;
+        }
+
+        return score;
     }
 
     public static IsoLanguage Find(string? language, bool fuzzySearch = false)
