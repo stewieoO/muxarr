@@ -194,6 +194,38 @@ public class FFmpegTests
             await FFmpeg.RemuxFile("/same.mp4", "/same.mp4", []));
     }
 
+    [TestMethod]
+    public void BuildArguments_FaststartFalse_DoesNotAppendFaststartFlag()
+    {
+        var args = FFmpeg.BuildRemuxArguments("/in.mp4", "/out.muxtmp", [], faststart: false);
+
+        StringAssert.Contains(args, "-movflags +use_metadata_tags");
+        Assert.IsFalse(args.Contains("+faststart"), "faststart must be absent when not requested");
+    }
+
+    [TestMethod]
+    public void BuildArguments_FaststartTrue_AppendsFaststartToMovflags()
+    {
+        var args = FFmpeg.BuildRemuxArguments("/in.mp4", "/out.muxtmp", [], faststart: true);
+
+        StringAssert.Contains(args, "-movflags +use_metadata_tags+faststart");
+    }
+
+    [TestMethod]
+    public void BuildArguments_MovMuxer_EmitsDashFMov()
+    {
+        var args = FFmpeg.BuildRemuxArguments("/in.mov", "/out.muxtmp", [], muxerFormat: "mov");
+
+        StringAssert.Contains(args, "-f mov");
+        Assert.IsFalse(args.Contains("-f mp4"));
+    }
+
+    [TestMethod]
+    public void IsFaststartLayout_MissingFile_ReturnsFalse()
+    {
+        Assert.IsFalse(FFmpeg.IsFaststartLayout("/does/not/exist.mp4"));
+    }
+
     // --- Live ffmpeg tests (generates an MP4 fixture on the fly from test.mkv) ---
 
     [TestInitialize]
@@ -609,6 +641,68 @@ public class FFmpegTests
 
         // Must not throw.
         OutputValidator.ValidateOrThrow(probed, source, source.Tracks.ToSnapshots());
+    }
+
+    [TestMethod]
+    public void IsFaststartLayout_MoovAtEnd_ReturnsFalse()
+    {
+        // Setup generates the fixture without +faststart so ffmpeg writes moov
+        // at the end of the file.
+        Assert.IsFalse(FFmpeg.IsFaststartLayout(_mp4Fixture));
+    }
+
+    [TestMethod]
+    public async Task IsFaststartLayout_MoovAtStart_ReturnsTrue()
+    {
+        var fixture = Path.Combine(Path.GetTempPath(), $"muxarr_faststart_{Guid.NewGuid():N}.mp4");
+        try
+        {
+            var genArgs =
+                $"-y -hide_banner -loglevel error -i \"{SourceFixture}\" -map 0:v -map 0:a -c copy " +
+                $"-movflags +faststart -f mp4 \"{fixture}\"";
+            var gen = await ProcessExecutor.ExecuteProcessAsync("ffmpeg", genArgs, TimeSpan.FromSeconds(30));
+            Assert.IsTrue(gen.ExitCode == 0, $"Failed to generate faststart fixture: {gen.Error}");
+
+            Assert.IsTrue(FFmpeg.IsFaststartLayout(fixture));
+        }
+        finally
+        {
+            if (File.Exists(fixture)) File.Delete(fixture);
+        }
+    }
+
+    [TestMethod]
+    public void IsFaststartLayout_NonMp4File_ReturnsFalse()
+    {
+        // The Matroska source fixture has no moov/mdat atoms at all; the
+        // walker should fall off the end and return false.
+        Assert.IsFalse(FFmpeg.IsFaststartLayout(SourceFixture));
+    }
+
+    [TestMethod]
+    public async Task RemuxFile_FaststartTrue_OutputIsProgressive()
+    {
+        var output = _workingCopy + ".muxtmp";
+        var tracks = await BuildAllTracks();
+
+        var result = await FFmpeg.RemuxFile(_workingCopy, output, tracks, faststart: true);
+        Assert.IsTrue(FFmpeg.IsSuccess(result), $"FFmpeg.RemuxFile failed: {result.Error}");
+
+        Assert.IsTrue(FFmpeg.IsFaststartLayout(output),
+            "Output must have moov before mdat when faststart was requested.");
+    }
+
+    [TestMethod]
+    public async Task RemuxFile_FaststartFalse_OutputIsNotProgressive()
+    {
+        var output = _workingCopy + ".muxtmp";
+        var tracks = await BuildAllTracks();
+
+        var result = await FFmpeg.RemuxFile(_workingCopy, output, tracks, faststart: false);
+        Assert.IsTrue(FFmpeg.IsSuccess(result), $"FFmpeg.RemuxFile failed: {result.Error}");
+
+        Assert.IsFalse(FFmpeg.IsFaststartLayout(output),
+            "Output must have moov after mdat when faststart was not requested.");
     }
 
     [TestMethod]

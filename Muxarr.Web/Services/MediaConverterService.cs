@@ -480,7 +480,8 @@ public class MediaConverterService(
                     conversion.Log(line, logger);
                 }
                 reportProgress(progress);
-            });
+            },
+            faststart: mediaFile.HasFaststart);
 
         token.ThrowIfCancellationRequested();
 

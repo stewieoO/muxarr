@@ -65,7 +65,8 @@ public static class FFmpeg
         string output,
         List<TrackOutput> tracks,
         long durationMs = 0,
-        Action<string, int, bool>? onOutput = null)
+        Action<string, int, bool>? onOutput = null,
+        bool faststart = false)
     {
         if (string.IsNullOrEmpty(input))
         {
@@ -84,14 +85,105 @@ public static class FFmpeg
             throw new ArgumentException("At least one track is required.", nameof(tracks));
         }
 
-        return await ExecuteAsync(BuildRemuxArguments(input, output, tracks), durationMs, onOutput);
+        return await ExecuteAsync(
+            BuildRemuxArguments(input, output, tracks, GetMp4MuxerFormat(input), faststart),
+            durationMs, onOutput);
+    }
+
+    /// <summary>
+    /// Picks the ffmpeg muxer for an MP4-family source. .mov gets the
+    /// QuickTime muxer so QT-specific boxes survive; everything else falls
+    /// through to the mp4 muxer, which is the most permissive for per-track
+    /// metadata.
+    /// </summary>
+    internal static string GetMp4MuxerFormat(string path)
+    {
+        return Path.GetExtension(path).ToLowerInvariant() switch
+        {
+            ".mov" => "mov",
+            _ => "mp4"
+        };
+    }
+
+    /// <summary>
+    /// Walks the top-level atoms of an MP4-family file and returns true if
+    /// moov appears before mdat (progressive / faststart layout). Unreadable
+    /// or malformed files return false so the writer falls back to ffmpeg's
+    /// default.
+    /// </summary>
+    public static bool IsFaststartLayout(string path)
+    {
+        try
+        {
+            using var fs = File.OpenRead(path);
+            var header = new byte[8];
+            while (fs.Position <= fs.Length - 8)
+            {
+                if (fs.Read(header, 0, 8) < 8)
+                {
+                    return false;
+                }
+
+                long size = ((long)header[0] << 24) | ((long)header[1] << 16) | ((long)header[2] << 8) | header[3];
+                var type = System.Text.Encoding.ASCII.GetString(header, 4, 4);
+
+                if (type == "moov")
+                {
+                    return true;
+                }
+                if (type == "mdat")
+                {
+                    return false;
+                }
+
+                long advance;
+                if (size == 1)
+                {
+                    var ext = new byte[8];
+                    if (fs.Read(ext, 0, 8) < 8)
+                    {
+                        return false;
+                    }
+                    long extSize = 0;
+                    for (var i = 0; i < 8; i++)
+                    {
+                        extSize = (extSize << 8) | ext[i];
+                    }
+                    advance = extSize - 16;
+                }
+                else if (size == 0)
+                {
+                    return false;
+                }
+                else
+                {
+                    advance = size - 8;
+                }
+
+                if (advance <= 0 || fs.Position + advance > fs.Length)
+                {
+                    return false;
+                }
+                fs.Seek(advance, SeekOrigin.Current);
+            }
+        }
+        catch
+        {
+            /* IO error - fall through to ffmpeg default. */
+        }
+        return false;
     }
 
     /// <summary>
     /// Builds the ffmpeg argument string for <see cref="RemuxFile"/>. Exposed
     /// for unit testing; production callers use <see cref="RemuxFile"/>.
     /// </summary>
-    public static string BuildRemuxArguments(string input, string output, List<TrackOutput> tracks)
+    public static string BuildRemuxArguments(
+        string input,
+        string output,
+        List<TrackOutput> tracks,
+        string muxerFormat = "mp4",
+        bool faststart = false)
     {
         var sb = new StringBuilder();
 
@@ -111,12 +203,14 @@ public static class FFmpeg
         // Explicit -map per track controls both track selection and output
         // order. -c copy stream-copies every stream (no transcoding).
         // -map_metadata 0 carries global tags; +use_metadata_tags allows
-        // arbitrary per-track keys in the moov atom.
+        // arbitrary per-track keys in the moov atom. +faststart mirrors the
+        // source layout when it was progressive.
         foreach (var track in tracks)
         {
             sb.Append($" -map 0:{track.TrackNumber}");
         }
-        sb.Append(" -c copy -map_metadata 0 -movflags +use_metadata_tags");
+        var movflags = faststart ? "+use_metadata_tags+faststart" : "+use_metadata_tags";
+        sb.Append($" -c copy -map_metadata 0 -movflags {movflags}");
 
         // Per-track metadata and disposition refer to OUTPUT stream indices
         // (the track's position in the -map list above), not input indices.
@@ -147,11 +241,9 @@ public static class FFmpeg
             }
         }
 
-        // All currently supported non-Matroska extensions (.mp4, .m4v, .mov,
-        // .3gp, .3g2) share ffmpeg's mov/mp4 muxer, so -f mp4 is correct for
-        // every file the dispatch routes here today. When .avi/.ts/etc. get
-        // added, this becomes a parameter.
-        sb.Append($" -f mp4 \"{output}\"");
+        // Muxer is dispatched by the caller so .mov stays QuickTime and the
+        // rest fall through to mp4.
+        sb.Append($" -f {muxerFormat} \"{output}\"");
 
         return sb.ToString();
     }

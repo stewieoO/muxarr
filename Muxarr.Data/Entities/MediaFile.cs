@@ -13,6 +13,7 @@ public class MediaFile : AuditableEntity
     public long Size { get; set; }
     public string? ProbeOutput { get; set; }
     public bool HasScanWarning { get; set; }
+    public bool HasFaststart { get; set; }
     public ICollection<MediaTrack> Tracks { get; set; } = new List<MediaTrack>();
     public int TrackCount { get; set; }
     public bool HasRedundantTracks { get; set; }
@@ -84,6 +85,9 @@ public class MediaFileConfiguration : AuditEntityConfiguration<MediaFile>
         builder.Property(e => e.ProbeOutput);
 
         builder.Property(e => e.HasScanWarning)
+            .IsRequired();
+
+        builder.Property(e => e.HasFaststart)
             .IsRequired();
 
         builder.Property(e => e.TrackCount)

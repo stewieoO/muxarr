@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
+using Muxarr.Core.Extensions;
+using Muxarr.Core.FFmpeg;
 using Muxarr.Core.Utilities;
 using Muxarr.Data;
 using Muxarr.Data.Entities;
@@ -234,6 +236,16 @@ public class MediaScannerService(
             dbFile.FileLastWriteTime = fileInfo.LastWriteTime.ToUniversalTime();
             dbFile.FileCreationTime = fileInfo.CreationTime.ToUniversalTime();
 
+            await context.SaveChangesAsync();
+        }
+
+        // Runs on every scan, not just when the probe is due, so unchanged
+        // files still pick up the flag after upgrades.
+        var expectedFaststart = dbFile.ContainerType.ToContainerFamily() == ContainerFamily.Mp4
+                                && FFmpeg.IsFaststartLayout(dbFile.Path);
+        if (dbFile.HasFaststart != expectedFaststart)
+        {
+            dbFile.HasFaststart = expectedFaststart;
             await context.SaveChangesAsync();
         }
     }
