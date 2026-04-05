@@ -147,8 +147,19 @@ public static class MediaFileExtensions
                 continue; // skip data/attachment/timecode streams
             }
 
-            var tags = stream.Tags;
             var disposition = stream.Disposition ?? new FFprobeDisposition();
+
+            // Attached pictures (cover art / episode thumbnails) are reported as
+            // video streams by ffprobe but are not real tracks — mkvmerge treats
+            // them as attachments on the MKV side, so skip them here for parity.
+            // Including them would double-count in the validator and ffmpeg's
+            // mp4 muxer also remaps their codec tag on stream-copy.
+            if (disposition.AttachedPic == 1)
+            {
+                continue;
+            }
+
+            var tags = stream.Tags;
             var trackName = PickTrackName(tags);
             var language = tags != null && tags.TryGetValue("language", out var l) ? l : "und";
 

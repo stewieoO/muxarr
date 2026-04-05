@@ -76,6 +76,12 @@ public class FFprobeDisposition
 
     [JsonPropertyName("original")]
     public int Original { get; set; }
+
+    // Cover art / episode thumbnails. ffprobe reports these as video streams
+    // with attached_pic=1; they are not real tracks (mkvmerge exposes the MKV
+    // equivalents as attachments, not tracks) and the scanner skips them.
+    [JsonPropertyName("attached_pic")]
+    public int AttachedPic { get; set; }
 }
 
 public class FFprobeFormat
