@@ -282,8 +282,8 @@ public class FFmpegTests
 
         // Read back via the scanner path so the test goes through the same
         // name/title key resolution production uses.
-        var probed = new MediaFile();
-        probed.SetFileDataFromFFprobe((await FFmpeg.GetStreamInfo(output)).Result!);
+        var probed = new MediaFile { Path = output };
+        await probed.SetFileDataFromFFprobe();
 
         Assert.AreEqual(ContainerFamily.Mp4, probed.ContainerType.ToContainerFamily());
         var audio = probed.Tracks.First(t => t.TrackNumber == 1);
@@ -383,11 +383,8 @@ public class FFmpegTests
         var result = await FFmpeg.RemuxFile(_workingCopy, output, tracks);
         Assert.IsTrue(FFmpeg.IsSuccess(result), $"FFmpeg.RemuxFile failed: {result.Error}");
 
-        var probe = await FFmpeg.GetStreamInfo(output);
-        Assert.IsNotNull(probe.Result);
-
         var file = new MediaFile { Path = output };
-        file.SetFileDataFromFFprobe(probe.Result);
+        await file.SetFileDataFromFFprobe();
 
         var audio = file.Tracks.First(t => t.TrackNumber == 1);
         Assert.IsTrue(audio.IsCommentary);
@@ -518,8 +515,8 @@ public class FFmpegTests
             Assert.IsTrue(gen.ExitCode == 0, $"Failed to generate {extension} fixture: {gen.Error}");
 
             // Scanner path: ffprobe then SetFileDataFromFFprobe.
-            var source = new MediaFile();
-            source.SetFileDataFromFFprobe((await FFmpeg.GetStreamInfo(fixture)).Result!);
+            var source = new MediaFile { Path = fixture };
+            await source.SetFileDataFromFFprobe();
 
             Assert.AreEqual(ContainerFamily.Mp4, source.ContainerType.ToContainerFamily(),
                 $"{extension} should classify as Mp4 family, got '{source.ContainerType}'.");
@@ -543,8 +540,8 @@ public class FFmpegTests
             var result = await FFmpeg.RemuxFile(fixture, output, tracks, source.DurationMs);
             Assert.IsTrue(FFmpeg.IsSuccess(result), $"{extension}: RemuxFile failed: {result.Error}");
 
-            var probed = new MediaFile();
-            probed.SetFileDataFromFFprobe((await FFmpeg.GetStreamInfo(output)).Result!);
+            var probed = new MediaFile { Path = output };
+            await probed.SetFileDataFromFFprobe();
 
             OutputValidator.ValidateOrThrow(probed, source, source.Tracks.ToSnapshots());
 
@@ -578,11 +575,8 @@ public class FFmpegTests
     [TestMethod]
     public async Task SetFileDataFromFFprobe_PopulatesTracksAndContainer()
     {
-        var probe = await FFmpeg.GetStreamInfo(_workingCopy);
-        Assert.IsNotNull(probe.Result);
-
         var file = new MediaFile { Path = _workingCopy };
-        file.SetFileDataFromFFprobe(probe.Result);
+        await file.SetFileDataFromFFprobe();
 
         Assert.AreEqual(ContainerFamily.Mp4, file.ContainerType.ToContainerFamily());
         Assert.AreEqual(5, file.Tracks.Count);
@@ -607,11 +601,11 @@ public class FFmpegTests
         var result = await FFmpeg.RemuxFile(_workingCopy, output, tracks);
         Assert.IsTrue(FFmpeg.IsSuccess(result), $"FFmpeg.RemuxFile failed: {result.Error}");
 
-        var source = new MediaFile();
-        source.SetFileDataFromFFprobe((await FFmpeg.GetStreamInfo(_workingCopy)).Result!);
+        var source = new MediaFile { Path = _workingCopy };
+        await source.SetFileDataFromFFprobe();
 
-        var probed = new MediaFile();
-        probed.SetFileDataFromFFprobe((await FFmpeg.GetStreamInfo(output)).Result!);
+        var probed = new MediaFile { Path = output };
+        await probed.SetFileDataFromFFprobe();
 
         // Must not throw.
         OutputValidator.ValidateOrThrow(probed, source, source.Tracks.ToSnapshots());
@@ -632,11 +626,8 @@ public class FFmpegTests
         var editResult = await FFmpeg.RemuxFile(_workingCopy, output, tracks);
         Assert.IsTrue(FFmpeg.IsSuccess(editResult), $"FFmpeg.RemuxFile failed: {editResult.Error}");
 
-        var probe = await FFmpeg.GetStreamInfo(output);
-        Assert.IsNotNull(probe.Result);
-
         var file = new MediaFile { Path = output };
-        file.SetFileDataFromFFprobe(probe.Result);
+        await file.SetFileDataFromFFprobe();
 
         var audio = file.Tracks.First(t => t.TrackNumber == 1);
         Assert.AreEqual("Round Trip Title", audio.TrackName);

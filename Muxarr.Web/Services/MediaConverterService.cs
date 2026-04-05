@@ -524,17 +524,15 @@ public class MediaConverterService(
             throw new Exception("Output file is missing or empty.");
         }
 
-        var probe = await FFmpeg.GetStreamInfo(tmp);
+        // Reuse the scanner's parser so validation sees exactly what a future
+        // rescan would see.
+        var probed = new MediaFile { Path = tmp };
+        var probe = await probed.SetFileDataFromFFprobe();
         if (probe.Result == null)
         {
             throw new Exception(
                 $"Could not probe output file with ffprobe. Error: {probe.Error?.Trim()}");
         }
-
-        // Reuse the scanner's parser so validation sees exactly what a future
-        // rescan would see.
-        var probed = new MediaFile();
-        probed.SetFileDataFromFFprobe(probe.Result);
 
         OutputValidator.ValidateOrThrow(probed, conversion.MediaFile!, conversion.AllowedTracks);
 

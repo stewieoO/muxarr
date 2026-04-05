@@ -1,8 +1,5 @@
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
-using Muxarr.Core.Extensions;
-using Muxarr.Core.FFmpeg;
-using Muxarr.Core.MediaInfo;
 using Muxarr.Core.Utilities;
 using Muxarr.Data;
 using Muxarr.Data.Entities;
@@ -217,7 +214,11 @@ public class MediaScannerService(
             // ReSharper disable once EntityFramework.NPlusOne.IncompleteDataUsage
             if (forceRescan || dbFile.NeedsFileProbe(fileInfo))
             {
-                await ProbeFile(dbFile);
+                var probe = await dbFile.SetFileDataFromFFprobe();
+                if (!string.IsNullOrEmpty(probe.Error))
+                {
+                    logger.LogWarning("ffprobe failed for '{Path}': {Error}", dbFile.Path, probe.Error);
+                }
 
                 dbFile.HasRedundantTracks =
                     profile != null && dbFile.GetAllowedTracks(profile).Count < dbFile.TrackCount;
@@ -230,35 +231,6 @@ public class MediaScannerService(
             dbFile.FileCreationTime = fileInfo.CreationTime.ToUniversalTime();
 
             await context.SaveChangesAsync();
-        }
-    }
-
-    /// <summary>
-    /// Probes a media file with ffprobe. Raw JSON lands in ProbeOutput for
-    /// the debug viewer. Matroska-native metadata muxarr cares about is
-    /// equivalent between mkvmerge and ffprobe for every field we read;
-    /// mkvmerge is still used on the write side by the converter.
-    /// </summary>
-    private async Task ProbeFile(MediaFile dbFile)
-    {
-        var probe = await FFmpeg.GetStreamInfo(dbFile.Path);
-        if (!string.IsNullOrEmpty(probe.Error))
-        {
-            logger.LogWarning("ffprobe failed for '{Path}': {Error}", dbFile.Path, probe.Error);
-        }
-        dbFile.ProbeOutput = !string.IsNullOrEmpty(probe.Error) ? probe.Error : probe.Output;
-        dbFile.SetFileDataFromFFprobe(probe.Result);
-
-        // ffprobe < 8.0 drops per-track udta.name on MP4 files; fall back to
-        // mediainfo when we see the symptom. No-op on newer ffmpeg.
-        if (dbFile.ContainerType.ToContainerFamily() == ContainerFamily.Mp4
-            && dbFile.Tracks.Any(t => string.IsNullOrEmpty(t.TrackName)))
-        {
-            var mi = await MediaInfoCli.GetTrackInfo(dbFile.Path);
-            if (mi.Result != null)
-            {
-                dbFile.OverlayMediaInfoTitles(mi.Result);
-            }
         }
     }
 

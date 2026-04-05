@@ -16,12 +16,9 @@ public class MediaInfoMedia
 
 public class MediaInfoTrack
 {
-    [JsonPropertyName("@type")]
-    public string? Type { get; set; }
-
     /// <summary>
-    /// 0-based absolute stream index. Matches ffprobe's stream.index and
-    /// MediaTrack.TrackNumber. File-level (General) tracks don't have one.
+    /// 0-based absolute stream index, matches MediaTrack.TrackNumber.
+    /// File-level (General) tracks don't have one.
     /// </summary>
     [JsonPropertyName("StreamOrder")]
     public string? StreamOrder { get; set; }

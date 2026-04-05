@@ -6,6 +6,7 @@ using Muxarr.Core.FFmpeg;
 using Muxarr.Core.Language;
 using Muxarr.Core.MediaInfo;
 using Muxarr.Core.MkvToolNix;
+using Muxarr.Core.Utilities;
 using Muxarr.Data.Entities;
 
 namespace Muxarr.Data.Extensions;
@@ -110,19 +111,24 @@ public static class MediaFileExtensions
     }
 
     /// <summary>
-    /// Populates a MediaFile from ffprobe output. Used for non-Matroska
-    /// containers where ffprobe is the source of truth (mkvmerge's MP4
-    /// demuxer hides the udta.name atom and a few other fields). Container
-    /// type is normalized to the same canonical strings mkvmerge emits so
-    /// downstream classification works the same way.
+    /// Populates a MediaFile by running ffprobe on <see cref="MediaFile.Path"/>.
+    /// Used for non-Matroska containers where ffprobe is the source of truth
+    /// (mkvmerge's MP4 demuxer hides the udta.name atom and a few other fields).
+    /// Container type is normalized to the same canonical strings mkvmerge emits
+    /// so downstream classification works the same way. On MP4 files a mediainfo
+    /// fallback fills in track titles that libavformat &lt; 8.0 drops.
     /// </summary>
-    public static void SetFileDataFromFFprobe(this MediaFile file, FFprobeResult? probe)
+    public static async Task<ProcessJsonResult<FFprobeResult>> SetFileDataFromFFprobe(this MediaFile file)
     {
+        var probeResult = await FFmpeg.GetStreamInfo(file.Path);
+        file.ProbeOutput = !string.IsNullOrEmpty(probeResult.Error) ? probeResult.Error : probeResult.Output;
+
+        var probe = probeResult.Result;
         if (probe == null)
         {
             file.Tracks.Clear();
             file.ContainerType = null;
-            return;
+            return probeResult;
         }
 
         file.ContainerType = NormalizeFFprobeContainer(probe.Format?.FormatName);
@@ -190,12 +196,26 @@ public static class MediaFileExtensions
         {
             file.DurationMs = (long)(durationSec * 1000);
         }
+
+        // libavformat < 8.0 drops per-track udta.name on MP4 files; consult
+        // mediainfo to fill the gap. No-op on newer ffmpeg or when every
+        // title is already populated.
+        if (file.ContainerType.ToContainerFamily() == ContainerFamily.Mp4
+            && file.Tracks.Any(t => string.IsNullOrEmpty(t.TrackName)))
+        {
+            var mi = await MediaInfoCli.GetTrackInfo(file.Path);
+            if (mi.Result != null)
+            {
+                file.OverlayMediaInfoTitles(mi.Result);
+            }
+        }
+
+        return probeResult;
     }
 
     /// <summary>
-    /// Fills in null TrackNames from a mediainfo probe. Used on MP4 files
-    /// where libavformat &lt; 8.0 drops udta.name so ffprobe leaves the title
-    /// blank. Correlates by StreamOrder which matches TrackNumber.
+    /// Fills null TrackNames from a mediainfo probe, correlating by
+    /// StreamOrder which matches TrackNumber.
     /// </summary>
     public static void OverlayMediaInfoTitles(this MediaFile file, MediaInfoResult mediaInfo)
     {

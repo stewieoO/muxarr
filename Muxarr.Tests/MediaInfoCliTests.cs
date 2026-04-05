@@ -1,4 +1,3 @@
-using Muxarr.Core.FFmpeg;
 using Muxarr.Core.MediaInfo;
 using Muxarr.Core.Utilities;
 using Muxarr.Data.Entities;
@@ -77,9 +76,9 @@ public class MediaInfoCliTests
             {
                 Tracks =
                 [
-                    new MediaInfoTrack { Type = "Video", StreamOrder = "0", Title = "FromMediaInfo" },
-                    new MediaInfoTrack { Type = "Audio", StreamOrder = "1", Title = "ShouldBeIgnored" },
-                    new MediaInfoTrack { Type = "Text", StreamOrder = "3", Title = "SubFromMediaInfo" }
+                    new MediaInfoTrack { StreamOrder = "0", Title = "FromMediaInfo" },
+                    new MediaInfoTrack { StreamOrder = "1", Title = "ShouldBeIgnored" },
+                    new MediaInfoTrack { StreamOrder = "3", Title = "SubFromMediaInfo" }
                 ]
             }
         };
@@ -108,9 +107,10 @@ public class MediaInfoCliTests
             {
                 Tracks =
                 [
-                    new MediaInfoTrack { Type = "General" },
-                    new MediaInfoTrack { Type = "Video", StreamOrder = "0", Title = "Ignored" },
-                    new MediaInfoTrack { Type = "Text", StreamOrder = "3", Title = "Hit" }
+                    // File-level (General) track with no StreamOrder — must be skipped.
+                    new MediaInfoTrack(),
+                    new MediaInfoTrack { StreamOrder = "0", Title = "Ignored" },
+                    new MediaInfoTrack { StreamOrder = "3", Title = "Hit" }
                 ]
             }
         };
@@ -132,22 +132,12 @@ public class MediaInfoCliTests
     }
 
     [TestMethod]
-    public async Task ScannerPath_ReadsMp4TitlesViaFFprobePlusMediaInfo()
+    public async Task SetFileDataFromFFprobe_ReadsMp4TitlesOnEveryFFmpegVersion()
     {
-        // Mirrors MediaScannerService.ProbeFile: ffprobe first, then overlay
-        // with mediainfo if any titles are still null.
-        var probe = await FFmpeg.GetStreamInfo(_mp4Fixture);
-        Assert.IsNotNull(probe.Result);
-
+        // ffmpeg 8.0+ reads titles directly, older versions go through the
+        // mediainfo fallback. Both paths must populate TrackName.
         var file = new MediaFile { Path = _mp4Fixture };
-        file.SetFileDataFromFFprobe(probe.Result);
-
-        if (file.Tracks.Any(t => string.IsNullOrEmpty(t.TrackName)))
-        {
-            var mi = await MediaInfoCli.GetTrackInfo(_mp4Fixture);
-            Assert.IsNotNull(mi.Result);
-            file.OverlayMediaInfoTitles(mi.Result);
-        }
+        await file.SetFileDataFromFFprobe();
 
         var tracks = file.Tracks.OrderBy(t => t.TrackNumber).ToList();
         Assert.AreEqual("Video 1080p", tracks[0].TrackName);

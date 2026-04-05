@@ -1,5 +1,4 @@
 using Muxarr.Core.Extensions;
-using Muxarr.Core.FFmpeg;
 using Muxarr.Core.Language;
 using Muxarr.Data.Entities;
 using Muxarr.Data.Extensions;
@@ -40,11 +39,8 @@ public class FFprobeComplexTests
     [TestMethod]
     public async Task SetFileDataFromFFprobe_ParsesAllFlagsFromComplexFile()
     {
-        var probe = await FFmpeg.GetStreamInfo(_workingCopy);
-        Assert.IsNotNull(probe.Result);
-
-        var file = new MediaFile();
-        file.SetFileDataFromFFprobe(probe.Result);
+        var file = new MediaFile { Path = _workingCopy };
+        await file.SetFileDataFromFFprobe();
 
         Assert.AreEqual(9, file.Tracks.Count);
         var tracks = file.Tracks.OrderBy(t => t.TrackNumber).ToList();
@@ -100,9 +96,8 @@ public class FFprobeComplexTests
     [TestMethod]
     public async Task SetFileDataFromFFprobe_ParsesCodecs()
     {
-        var probe = await FFmpeg.GetStreamInfo(_workingCopy);
-        var file = new MediaFile();
-        file.SetFileDataFromFFprobe(probe.Result);
+        var file = new MediaFile { Path = _workingCopy };
+        await file.SetFileDataFromFFprobe();
 
         var tracks = file.Tracks.OrderBy(t => t.TrackNumber).ToList();
 
@@ -114,9 +109,8 @@ public class FFprobeComplexTests
     [TestMethod]
     public async Task SetFileDataFromFFprobe_ParsesAudioChannels()
     {
-        var probe = await FFmpeg.GetStreamInfo(_workingCopy);
-        var file = new MediaFile();
-        file.SetFileDataFromFFprobe(probe.Result);
+        var file = new MediaFile { Path = _workingCopy };
+        await file.SetFileDataFromFFprobe();
 
         var audio = file.Tracks.Where(t => t.Type == MediaTrackType.Audio).ToList();
         Assert.IsTrue(audio.All(t => t.AudioChannels > 0));
@@ -125,9 +119,8 @@ public class FFprobeComplexTests
     [TestMethod]
     public async Task SetFileDataFromFFprobe_ParsesContainerAndResolution()
     {
-        var probe = await FFmpeg.GetStreamInfo(_workingCopy);
-        var file = new MediaFile();
-        file.SetFileDataFromFFprobe(probe.Result);
+        var file = new MediaFile { Path = _workingCopy };
+        await file.SetFileDataFromFFprobe();
 
         Assert.AreEqual("Matroska", file.ContainerType);
         Assert.AreEqual(ContainerFamily.Matroska, file.ContainerType.ToContainerFamily());
@@ -141,9 +134,8 @@ public class FFprobeComplexTests
     [TestMethod]
     public async Task EndToEnd_FilterComplexFile_EnglishOnly()
     {
-        var probe = await FFmpeg.GetStreamInfo(_workingCopy);
-        var file = new MediaFile { OriginalLanguage = "English" };
-        file.SetFileDataFromFFprobe(probe.Result);
+        var file = new MediaFile { Path = _workingCopy, OriginalLanguage = "English" };
+        await file.SetFileDataFromFFprobe();
 
         var profile = new Profile
         {
@@ -180,9 +172,8 @@ public class FFprobeComplexTests
     [TestMethod]
     public async Task EndToEnd_FilterComplexFile_KeepHI()
     {
-        var probe = await FFmpeg.GetStreamInfo(_workingCopy);
-        var file = new MediaFile { OriginalLanguage = "English" };
-        file.SetFileDataFromFFprobe(probe.Result);
+        var file = new MediaFile { Path = _workingCopy, OriginalLanguage = "English" };
+        await file.SetFileDataFromFFprobe();
 
         var profile = new Profile
         {
