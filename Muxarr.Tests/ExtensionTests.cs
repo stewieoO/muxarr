@@ -21,6 +21,45 @@ public class ExtensionTests
     }
 
     [TestMethod]
+    public void ParseCodec_MapsNewVideoCodecs()
+    {
+        // mkvmerge variants
+        Assert.AreEqual(nameof(VideoCodec.Mpeg4), CodecExtensions.ParseCodec("MPEG-4p2"));
+        Assert.AreEqual(nameof(VideoCodec.Mpeg2Video), CodecExtensions.ParseCodec("MPEG-1/2"));
+        Assert.AreEqual(nameof(VideoCodec.Mpeg2Video), CodecExtensions.ParseCodec("MPEG-2"));
+        Assert.AreEqual(nameof(VideoCodec.Vc1), CodecExtensions.ParseCodec("VC-1"));
+        // ffprobe variants
+        Assert.AreEqual(nameof(VideoCodec.Mpeg4), CodecExtensions.ParseCodec("mpeg4"));
+        Assert.AreEqual(nameof(VideoCodec.Mpeg2Video), CodecExtensions.ParseCodec("mpeg2video"));
+        Assert.AreEqual(nameof(VideoCodec.Vc1), CodecExtensions.ParseCodec("vc1"));
+    }
+
+    [TestMethod]
+    public void ParseCodec_MapsMp2Audio()
+    {
+        Assert.AreEqual(nameof(AudioCodec.Mp2), CodecExtensions.ParseCodec("mp2"));
+        Assert.AreEqual(nameof(AudioCodec.Mp2), CodecExtensions.ParseCodec("MP2"));
+    }
+
+    [TestMethod]
+    public void ParseCodec_DtsProfileDistinguishesHdMaster()
+    {
+        // ffprobe emits codec=dts for the whole DTS family; profile disambiguates.
+        // Without a profile, plain DTS.
+        Assert.AreEqual(nameof(AudioCodec.Dts), CodecExtensions.ParseCodec("dts"));
+        Assert.AreEqual(nameof(AudioCodec.Dts), CodecExtensions.ParseCodec("dts", "DTS"));
+
+        // DTS-HD MA profile must be recognized so TrackQualityScorer still
+        // treats it as lossless after the ffprobe migration.
+        Assert.AreEqual(nameof(AudioCodec.DtsHdMa), CodecExtensions.ParseCodec("dts", "DTS-HD MA"));
+        Assert.AreEqual(nameof(AudioCodec.DtsHdMa), CodecExtensions.ParseCodec("dts", "DTS-HD Master Audio"));
+
+        // Other DTS profiles stay plain DTS (HRA and Express are lossy).
+        Assert.AreEqual(nameof(AudioCodec.Dts), CodecExtensions.ParseCodec("dts", "DTS-HD HRA"));
+        Assert.AreEqual(nameof(AudioCodec.Dts), CodecExtensions.ParseCodec("dts", "DTS Express"));
+    }
+
+    [TestMethod]
     public void FormatCodec_DisplaysEnumValues()
     {
         Assert.AreEqual("H.265 / HEVC", nameof(VideoCodec.Hevc).FormatCodec());
@@ -29,6 +68,15 @@ public class ExtensionTests
         Assert.AreEqual("E-AC-3", nameof(AudioCodec.Eac3).FormatCodec());
         Assert.AreEqual("TrueHD", nameof(AudioCodec.TrueHd).FormatCodec());
         Assert.AreEqual("SRT", nameof(SubtitleCodec.Srt).FormatCodec());
+    }
+
+    [TestMethod]
+    public void FormatCodec_DisplaysNewCodecs()
+    {
+        Assert.AreEqual("MPEG-4 Part 2", nameof(VideoCodec.Mpeg4).FormatCodec());
+        Assert.AreEqual("MPEG-2", nameof(VideoCodec.Mpeg2Video).FormatCodec());
+        Assert.AreEqual("VC-1", nameof(VideoCodec.Vc1).FormatCodec());
+        Assert.AreEqual("MP2", nameof(AudioCodec.Mp2).FormatCodec());
     }
 
     [TestMethod]
