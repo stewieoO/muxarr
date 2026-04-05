@@ -21,8 +21,7 @@ public static class HealthCheckExtensions
         return services.AddHealthChecks()
             .AddCheck<DatabaseHealthCheck>("Database")
             .AddCheck<MkvMergeHealthCheck>("mkvmerge")
-            .AddCheck<FFmpegHealthCheck>("ffmpeg")
-            .AddCheck<MediaInfoHealthCheck>("mediainfo");
+            .AddCheck<FFmpegHealthCheck>("ffmpeg");
     }
 
     public static IEndpointRouteBuilder MapCachedHealthChecks(this WebApplication app)

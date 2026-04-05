@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Muxarr.Core.Extensions;
 using Muxarr.Core.FFmpeg;
 using Muxarr.Core.Language;
-using Muxarr.Core.MediaInfo;
 using Muxarr.Core.MkvToolNix;
 using Muxarr.Core.Utilities;
 using Muxarr.Data.Entities;
@@ -115,8 +114,7 @@ public static class MediaFileExtensions
     /// Used for non-Matroska containers where ffprobe is the source of truth
     /// (mkvmerge's MP4 demuxer hides the udta.name atom and a few other fields).
     /// Container type is normalized to the same canonical strings mkvmerge emits
-    /// so downstream classification works the same way. On MP4 files a mediainfo
-    /// fallback fills in track titles that libavformat &lt; 8.0 drops.
+    /// so downstream classification works the same way.
     /// </summary>
     public static async Task<ProcessJsonResult<FFprobeResult>> SetFileDataFromFFprobe(this MediaFile file)
     {
@@ -213,46 +211,7 @@ public static class MediaFileExtensions
             file.DurationMs = (long)(durationSec * 1000);
         }
 
-        // libavformat < 8.0 drops per-track udta.name on MP4 files; consult
-        // mediainfo to fill the gap. No-op on newer ffmpeg or when every
-        // title is already populated.
-        if (file.ContainerType.ToContainerFamily() == ContainerFamily.Mp4
-            && file.Tracks.Any(t => string.IsNullOrEmpty(t.TrackName)))
-        {
-            var mi = await MediaInfoCli.GetTrackInfo(file.Path);
-            if (mi.Result != null)
-            {
-                file.OverlayMediaInfoTitles(mi.Result);
-            }
-        }
-
         return probeResult;
-    }
-
-    /// <summary>
-    /// Fills null TrackNames from a mediainfo probe, correlating by
-    /// StreamOrder which matches TrackNumber.
-    /// </summary>
-    public static void OverlayMediaInfoTitles(this MediaFile file, MediaInfoResult mediaInfo)
-    {
-        if (mediaInfo.Media?.Tracks == null)
-        {
-            return;
-        }
-
-        foreach (var mi in mediaInfo.Media.Tracks)
-        {
-            if (string.IsNullOrEmpty(mi.Title) || !int.TryParse(mi.StreamOrder, out var streamIndex))
-            {
-                continue;
-            }
-
-            var track = file.Tracks.FirstOrDefault(t => t.TrackNumber == streamIndex);
-            if (track != null && string.IsNullOrEmpty(track.TrackName))
-            {
-                track.TrackName = mi.Title;
-            }
-        }
     }
 
     /// <summary>

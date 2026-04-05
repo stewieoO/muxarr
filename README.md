@@ -133,7 +133,6 @@ Muxarr exposes a stats API at `/api/stats` (authenticated via `X-Api-Key` header
 - [.NET 10](https://dotnet.microsoft.com/) / Blazor
 - [MKVToolNix](https://mkvtoolnix.download/) (mkvmerge, mkvpropedit)
 - [FFmpeg](https://ffmpeg.org/) (ffmpeg, ffprobe)
-- [MediaInfo](https://mediaarea.net/MediaInfo) (MP4 track title readback)
 
 ## License
 
