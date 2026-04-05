@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Muxarr.Core.Extensions;
 using Muxarr.Core.FFmpeg;
 using Muxarr.Core.Language;
+using Muxarr.Core.MediaInfo;
 using Muxarr.Core.MkvToolNix;
 using Muxarr.Data.Entities;
 
@@ -137,9 +138,7 @@ public static class MediaFileExtensions
 
             var tags = stream.Tags;
             var disposition = stream.Disposition ?? new FFprobeDisposition();
-            var trackName = tags != null && tags.TryGetValue("name", out var n) ? n
-                : tags != null && tags.TryGetValue("title", out var t) ? t
-                : null;
+            var trackName = PickTrackName(tags);
             var language = tags != null && tags.TryGetValue("language", out var l) ? l : "und";
 
             var track = new MediaTrack
@@ -194,6 +193,33 @@ public static class MediaFileExtensions
     }
 
     /// <summary>
+    /// Fills in null TrackNames from a mediainfo probe. Used on MP4 files
+    /// where libavformat &lt; 8.0 drops udta.name so ffprobe leaves the title
+    /// blank. Correlates by StreamOrder which matches TrackNumber.
+    /// </summary>
+    public static void OverlayMediaInfoTitles(this MediaFile file, MediaInfoResult mediaInfo)
+    {
+        if (mediaInfo.Media?.Tracks == null)
+        {
+            return;
+        }
+
+        foreach (var mi in mediaInfo.Media.Tracks)
+        {
+            if (string.IsNullOrEmpty(mi.Title) || !int.TryParse(mi.StreamOrder, out var streamIndex))
+            {
+                continue;
+            }
+
+            var track = file.Tracks.FirstOrDefault(t => t.TrackNumber == streamIndex);
+            if (track != null && string.IsNullOrEmpty(track.TrackName))
+            {
+                track.TrackName = mi.Title;
+            }
+        }
+    }
+
+    /// <summary>
     /// Normalizes ffprobe's comma-separated format_name ("mov,mp4,m4a,3gp,3g2,mj2")
     /// into the canonical container strings mkvmerge emits, so ContainerFamily
     /// classification stays single-sourced.
@@ -227,6 +253,29 @@ public static class MediaFileExtensions
             "subtitle" => MediaTrackType.Subtitles,
             _ => MediaTrackType.Unknown
         };
+    }
+
+    /// <summary>
+    /// Picks the track title from an ffprobe tags dict. MP4-family files
+    /// surface it as "name" (from udta.name), Matroska as "title" (from the
+    /// TrackEntry.Name EBML element). Both keys are primary paths for their
+    /// respective container families, not a legacy fallback.
+    /// </summary>
+    private static string? PickTrackName(Dictionary<string, string>? tags)
+    {
+        if (tags == null)
+        {
+            return null;
+        }
+        if (tags.TryGetValue("name", out var name) && !string.IsNullOrEmpty(name))
+        {
+            return name;
+        }
+        if (tags.TryGetValue("title", out var title) && !string.IsNullOrEmpty(title))
+        {
+            return title;
+        }
+        return null;
     }
 
     // Allowed tracks filtering

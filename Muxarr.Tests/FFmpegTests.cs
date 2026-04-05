@@ -206,10 +206,9 @@ public class FFmpegTests
 
         // Generate an MP4 from the MKV fixture. SRT subs are converted to
         // mov_text so the fixture exercises the tx3g preservation path.
-        // Track titles are injected explicitly and +use_metadata_tags is set
-        // so the fixture is deterministic across ffmpeg versions (older
-        // ffmpeg builds on Linux CI don't persist default per-stream titles
-        // to MP4 without this flag).
+        // Titles are injected explicitly so the fixture is deterministic
+        // instead of relying on ffmpeg's default per-stream metadata
+        // pass-through (which varies by version).
         var genArgs =
             $"-y -hide_banner -loglevel error -i \"{SourceFixture}\" -map 0:v -map 0:a -map 0:s " +
             $"-c:v copy -c:a copy -c:s mov_text " +
@@ -281,18 +280,14 @@ public class FFmpegTests
         Assert.IsTrue(FFmpeg.IsSuccess(result), $"FFmpeg.RemuxFile failed: {result.Error}");
         Assert.IsTrue(File.Exists(output));
 
-        // Container must still be MP4, not Matroska.
-        var info = await MkvMerge.GetFileInfo(output);
-        Assert.IsNotNull(info.Result);
-        Assert.AreEqual(ContainerFamily.Mp4, info.Result.Container?.Type.ToContainerFamily());
+        // Read back via the scanner path so the test goes through the same
+        // name/title key resolution production uses.
+        var probed = new MediaFile();
+        probed.SetFileDataFromFFprobe((await FFmpeg.GetStreamInfo(output)).Result!);
 
-        // mkvmerge does not surface MP4 track titles, so verify via ffprobe.
-        var probe = await FFmpeg.GetStreamInfo(output);
-        var audioStream = probe.Result?.Streams.FirstOrDefault(s => s.Index == 1);
-        Assert.IsNotNull(audioStream);
-        Assert.IsNotNull(audioStream.Tags);
-        Assert.IsTrue(audioStream.Tags.TryGetValue("name", out var name));
-        Assert.AreEqual("Renamed English 2.0", name);
+        Assert.AreEqual(ContainerFamily.Mp4, probed.ContainerType.ToContainerFamily());
+        var audio = probed.Tracks.First(t => t.TrackNumber == 1);
+        Assert.AreEqual("Renamed English 2.0", audio.TrackName);
     }
 
     [TestMethod]
@@ -516,8 +511,8 @@ public class FFmpegTests
             // Generate a video + audio fixture in the requested format. Subs
             // are dropped here to avoid 3GP codec restrictions.
             var genArgs =
-                $"-y -hide_banner -loglevel error -i \"{SourceFixture}\" -map 0:v -map 0:a " +
-                $"-c copy -metadata:s:0 title=\"Video\" -metadata:s:1 title=\"Audio {extension}\" " +
+                $"-y -hide_banner -loglevel error -i \"{SourceFixture}\" -map 0:v -map 0:a -c copy " +
+                $"-metadata:s:0 title=\"Video\" -metadata:s:1 title=\"Audio {extension}\" " +
                 $"-movflags +use_metadata_tags -f {ffmpegFormat} \"{fixture}\"";
             var gen = await ProcessExecutor.ExecuteProcessAsync("ffmpeg", genArgs, TimeSpan.FromSeconds(30));
             Assert.IsTrue(gen.ExitCode == 0, $"Failed to generate {extension} fixture: {gen.Error}");

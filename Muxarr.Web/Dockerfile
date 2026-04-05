@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
     mkvtoolnix \
+    mediainfo \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -g 888 appgroup \
     && useradd -u 888 -g 888 -d /data -s /bin/false appuser \

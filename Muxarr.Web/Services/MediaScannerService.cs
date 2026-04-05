@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
+using Muxarr.Core.Extensions;
 using Muxarr.Core.FFmpeg;
+using Muxarr.Core.MediaInfo;
 using Muxarr.Core.Utilities;
 using Muxarr.Data;
 using Muxarr.Data.Entities;
@@ -246,6 +248,18 @@ public class MediaScannerService(
         }
         dbFile.ProbeOutput = !string.IsNullOrEmpty(probe.Error) ? probe.Error : probe.Output;
         dbFile.SetFileDataFromFFprobe(probe.Result);
+
+        // ffprobe < 8.0 drops per-track udta.name on MP4 files; fall back to
+        // mediainfo when we see the symptom. No-op on newer ffmpeg.
+        if (dbFile.ContainerType.ToContainerFamily() == ContainerFamily.Mp4
+            && dbFile.Tracks.Any(t => string.IsNullOrEmpty(t.TrackName)))
+        {
+            var mi = await MediaInfoCli.GetTrackInfo(dbFile.Path);
+            if (mi.Result != null)
+            {
+                dbFile.OverlayMediaInfoTitles(mi.Result);
+            }
+        }
     }
 
     private async Task PurgeDeleted(CancellationToken token)
