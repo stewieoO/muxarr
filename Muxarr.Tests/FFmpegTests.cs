@@ -4,6 +4,7 @@ using Muxarr.Core.MkvToolNix;
 using Muxarr.Core.Utilities;
 using Muxarr.Data.Entities;
 using Muxarr.Data.Extensions;
+using Muxarr.Web.Services;
 
 namespace Muxarr.Tests;
 
@@ -512,6 +513,27 @@ public class FFmpegTests
         // SDH subtitle should be picked up from ffprobe's hearing_impaired disposition.
         var sdhSub = file.Tracks.First(t => t.Type == MediaTrackType.Subtitles && t.TrackNumber == 3);
         Assert.IsTrue(sdhSub.IsHearingImpaired);
+    }
+
+    [TestMethod]
+    public async Task RemuxFile_OutputPassesOutputValidator()
+    {
+        // End-to-end: run a real remux, then validate the output the same
+        // way FinalizeTemporaryOutputAsync does.
+        var output = _workingCopy + ".muxtmp";
+        var tracks = await BuildAllTracks();
+
+        var result = await FFmpeg.RemuxFile(_workingCopy, output, tracks);
+        Assert.IsTrue(FFmpeg.IsSuccess(result), $"FFmpeg.RemuxFile failed: {result.Error}");
+
+        var source = new MediaFile();
+        source.SetFileDataFromFFprobe((await FFmpeg.GetStreamInfo(_workingCopy)).Result!);
+
+        var probed = new MediaFile();
+        probed.SetFileDataFromFFprobe((await FFmpeg.GetStreamInfo(output)).Result!);
+
+        // Must not throw.
+        OutputValidator.ValidateOrThrow(probed, source, source.Tracks.ToSnapshots());
     }
 
     [TestMethod]

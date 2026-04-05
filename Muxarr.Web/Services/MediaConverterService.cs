@@ -521,18 +521,22 @@ public class MediaConverterService(
         var fileInfo = new FileInfo(tmp);
         if (!fileInfo.Exists || fileInfo.Length == 0)
         {
-            throw new Exception("Something happened to the output file!");
+            throw new Exception("Output file is missing or empty.");
         }
 
-        var info = await MkvMerge.GetFileInfo(tmp);
-        var count = (info.Result?.Tracks
-                .ToList().Count)
-            .GetValueOrDefault(0);
-
-        if (count != conversion.AllowedTracks.Count)
+        var probe = await FFmpeg.GetStreamInfo(tmp);
+        if (probe.Result == null)
         {
-            throw new Exception($"Trackcount was {count}. Expected: {conversion.AllowedTracks.Count}");
+            throw new Exception(
+                $"Could not probe output file with ffprobe. Error: {probe.Error?.Trim()}");
         }
+
+        // Reuse the scanner's parser so validation sees exactly what a future
+        // rescan would see.
+        var probed = new MediaFile();
+        probed.SetFileDataFromFFprobe(probe.Result);
+
+        OutputValidator.ValidateOrThrow(probed, conversion.MediaFile!, conversion.AllowedTracks);
 
         conversion.Log("Validation of new file is ok!", logger);
         ConverterStateChanged?.Invoke(this, new ConverterProgressEvent(conversion));
