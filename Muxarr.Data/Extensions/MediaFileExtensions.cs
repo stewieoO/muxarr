@@ -122,6 +122,7 @@ public static class MediaFileExtensions
     {
         var probeResult = await FFmpeg.GetStreamInfo(file.Path);
         file.ProbeOutput = !string.IsNullOrEmpty(probeResult.Error) ? probeResult.Error : probeResult.Output;
+        file.HasScanWarning = false;
 
         var probe = probeResult.Result;
         if (probe == null)
@@ -130,6 +131,10 @@ public static class MediaFileExtensions
             file.ContainerType = null;
             return probeResult;
         }
+
+        // ffprobe runs at -v error. Any stderr alongside a valid JSON result
+        // means the file scanned but the demuxer flagged a problem.
+        file.HasScanWarning = !string.IsNullOrEmpty(probeResult.Error);
 
         file.ContainerType = NormalizeFFprobeContainer(probe.Format?.FormatName);
         file.Tracks.Clear();

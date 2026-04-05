@@ -12,6 +12,7 @@ public class MediaFile : AuditableEntity
     public string Path { get; set; } = string.Empty;
     public long Size { get; set; }
     public string? ProbeOutput { get; set; }
+    public bool HasScanWarning { get; set; }
     public ICollection<MediaTrack> Tracks { get; set; } = new List<MediaTrack>();
     public int TrackCount { get; set; }
     public bool HasRedundantTracks { get; set; }
@@ -81,6 +82,9 @@ public class MediaFileConfiguration : AuditEntityConfiguration<MediaFile>
             .HasMaxLength(4096);
 
         builder.Property(e => e.ProbeOutput);
+
+        builder.Property(e => e.HasScanWarning)
+            .IsRequired();
 
         builder.Property(e => e.TrackCount)
             .IsRequired();

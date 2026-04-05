@@ -215,9 +215,13 @@ public class MediaScannerService(
             if (forceRescan || dbFile.NeedsFileProbe(fileInfo))
             {
                 var probe = await dbFile.SetFileDataFromFFprobe();
-                if (!string.IsNullOrEmpty(probe.Error))
+                if (probe.Result == null)
                 {
                     logger.LogWarning("ffprobe failed for '{Path}': {Error}", dbFile.Path, probe.Error);
+                }
+                else if (dbFile.HasScanWarning)
+                {
+                    logger.LogInformation("ffprobe warning for '{Path}': {Warning}", dbFile.Path, probe.Error);
                 }
 
                 dbFile.HasRedundantTracks =
