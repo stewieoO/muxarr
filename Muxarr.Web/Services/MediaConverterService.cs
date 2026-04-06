@@ -283,6 +283,7 @@ public class MediaConverterService(
         // to change, or a Matroska file that mkvpropedit can patch in place.
         if (canSkipRemux && !hasMetadataChanges)
         {
+            conversion.StartedDate ??= DateTime.UtcNow;
             conversion.Log("File already optimized, skipping.", logger);
             conversion.SizeAfter = conversion.SizeBefore;
             conversion.TracksAfter = conversion.MediaFile.Tracks.ToSnapshots();
@@ -321,6 +322,7 @@ public class MediaConverterService(
         {
             conversion.TempFilePath = tmp;
             conversion.State = ConversionState.Processing;
+            conversion.StartedDate ??= DateTime.UtcNow;
             conversion.Progress = 0;
             await context.SaveChangesAsync(token);
 
@@ -386,6 +388,7 @@ public class MediaConverterService(
     {
         var mediaFile = conversion.MediaFile!;
         conversion.State = ConversionState.Processing;
+        conversion.StartedDate ??= DateTime.UtcNow;
         conversion.Log("Tracks are optimal. Fixing metadata in-place with mkvpropedit..", logger);
         await context.SaveChangesAsync(token);
 

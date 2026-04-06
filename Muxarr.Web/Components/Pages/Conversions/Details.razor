@@ -93,14 +93,47 @@
 
                     <!-- Dates Column -->
                     <div class="col-12 col-md-6 col-lg-4">
-                        <div class="mb-3">
-                            <div class="text-muted small mb-1">Started</div>
-                            <TimeAgo DateTime="Conversion.CreatedDate"/>
-                        </div>
-                        <div>
-                            <div class="text-muted small mb-1">Last Updated</div>
-                            <TimeAgo DateTime="Conversion.UpdatedDate"/>
-                        </div>
+                        @if (Conversion.State is ConversionState.New or ConversionState.Processing)
+                        {
+                            <div class="mb-3">
+                                <div class="text-muted small mb-1">Queued</div>
+                                <TimeAgo DateTime="Conversion.CreatedDate"/>
+                            </div>
+                            @if (Conversion.StartedDate.HasValue)
+                            {
+                                <div>
+                                    <div class="text-muted small mb-1">Started</div>
+                                    <TimeAgo DateTime="Conversion.StartedDate.Value"/>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            @if (Conversion.StartedDate.HasValue)
+                            {
+                                <div class="mb-3">
+                                    <div class="text-muted small mb-1">Started</div>
+                                    <TimeAgo DateTime="Conversion.StartedDate.Value"/>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mb-3">
+                                    <div class="text-muted small mb-1">Queued</div>
+                                    <TimeAgo DateTime="Conversion.CreatedDate"/>
+                                </div>
+                            }
+                            <div>
+                                <div class="text-muted small mb-1">Completed</div>
+                                <div>
+                                    <TimeAgo DateTime="Conversion.UpdatedDate"/>
+                                    @if (Conversion.StartedDate.HasValue)
+                                    {
+                                        <span class="text-muted ms-2">(took <Duration Value="Conversion.UpdatedDate - Conversion.StartedDate.Value"/>)</span>
+                                    }
+                                </div>
+                            </div>
+                        }
                     </div>
 
                     <!-- Size Information Column -->
@@ -145,10 +178,17 @@
                     <i class="bi bi-collection-fill text-primary me-2"></i>
                     <h5 class="mb-0">Tracks After</h5>
                 </div>
-                <div class="table-responsive">
-                    <MediaTrackDetailTable Tracks="Conversion.TracksAfter"
-                                           OriginalLanguage="@Conversion.MediaFile?.OriginalLanguage"/>
-                </div>
+                @if (Conversion.TracksAfter.Count > 0)
+                {
+                    <div class="table-responsive">
+                        <MediaTrackDetailTable Tracks="Conversion.TracksAfter"
+                                               OriginalLanguage="@Conversion.MediaFile?.OriginalLanguage"/>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No track data available.</p>
+                }
             </div>
         </div>
 
@@ -238,6 +278,7 @@
             Conversion.Log = e.Conversion.Log;
             Conversion.Progress = e.Conversion.Progress;
             Conversion.State = e.Conversion.State;
+            Conversion.StartedDate ??= e.Conversion.StartedDate;
 
             StateHasChanged();
         });

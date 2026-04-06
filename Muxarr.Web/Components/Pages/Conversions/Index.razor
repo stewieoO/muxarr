@@ -56,7 +56,7 @@
                             <th>File</th>
                             <th>State</th>
                             <th>Progress</th>
-                            <th>Started</th>
+                            <th>Queued</th>
                             <th class="text-center" style="width: 50px"></th>
                         </tr>
                         </thead>
@@ -172,6 +172,11 @@
                     </th>
                     <th>
                         <SortHeader Parent="this" SortProperty="CreatedDate">
+                            Queued
+                        </SortHeader>
+                    </th>
+                    <th>
+                        <SortHeader Parent="this" SortProperty="StartedDate">
                             Started
                         </SortHeader>
                     </th>
@@ -205,6 +210,12 @@
                         </td>
                         <td>
                             <TimeAgo DateTime="conversion.CreatedDate"/>
+                        </td>
+                        <td>
+                            @if (conversion.StartedDate.HasValue)
+                            {
+                                <TimeAgo DateTime="conversion.StartedDate.Value"/>
+                            }
                         </td>
                         <td>
                             <MediaTrackLabels Tracks="conversion.TracksBefore"></MediaTrackLabels>
@@ -361,6 +372,11 @@
     private async Task OnDeleteConversion(MediaConversion conversion)
     {
         if (conversion.State == ConversionState.Processing)
+        {
+            return;
+        }
+
+        if (!await ModalService.ShowConfirm($"Are you sure you want to delete '{conversion.Name}'?", "Delete Conversion"))
         {
             return;
         }
