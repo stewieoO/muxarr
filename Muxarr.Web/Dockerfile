@@ -1,6 +1,9 @@
-# ffmpeg 8.1 static build from BtbN (linked from ffmpeg.org). Debian's
+ARG FFMPEG_VERSION=8.1
+
+# ffmpeg static build from BtbN (linked from ffmpeg.org). Debian's
 # apt ffmpeg is 5.1 - too old to round-trip MP4 udta.name titles.
 FROM debian:12-slim AS ffmpeg-dl
+ARG FFMPEG_VERSION
 ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
       curl ca-certificates xz-utils \
@@ -11,7 +14,7 @@ RUN set -eux; \
         arm64) btbn_arch=linuxarm64 ;; \
         *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
-    url="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-${btbn_arch}-gpl-8.1.tar.xz"; \
+    url="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n${FFMPEG_VERSION}-latest-${btbn_arch}-gpl-${FFMPEG_VERSION}.tar.xz"; \
     curl -fsSL "${url}" -o /tmp/ffmpeg.tar.xz; \
     mkdir -p /out; \
     tar -xJf /tmp/ffmpeg.tar.xz -C /out --strip-components=2 --wildcards '*/bin/ffmpeg' '*/bin/ffprobe'; \

@@ -17,13 +17,15 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  FFMPEG_VERSION: '8.1'
+  DOTNET_VERSION: '10.0.x'
 
 jobs:
   test:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -33,11 +35,16 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mkvtoolnix
 
-      - name: Install ffmpeg 8.1 (Linux)
+      - name: Install ffmpeg ${{ env.FFMPEG_VERSION }} (Linux)
         if: runner.os == 'Linux'
         run: |
           set -euo pipefail
-          url="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz"
+          case "$(uname -m)" in
+            x86_64)  btbn_arch=linux64 ;;
+            aarch64) btbn_arch=linuxarm64 ;;
+            *) echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;;
+          esac
+          url="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n${FFMPEG_VERSION}-latest-${btbn_arch}-gpl-${FFMPEG_VERSION}.tar.xz"
           curl -fsSL "$url" -o /tmp/ffmpeg.tar.xz
           sudo tar -xJf /tmp/ffmpeg.tar.xz -C /usr/local/bin --strip-components=2 --wildcards '*/bin/ffmpeg' '*/bin/ffprobe'
           ffmpeg -version | head -1
@@ -56,37 +63,31 @@ jobs:
           fi
           ffmpeg -version | head -1
 
-      - name: Install mkvtoolnix (Windows)
+      - name: Install mkvtoolnix + ffmpeg (Windows)
         if: runner.os == 'Windows'
         run: |
-          $success = $false
-          for ($i = 1; $i -le 3; $i++) {
-            choco install mkvtoolnix -y --no-progress
-            if (Test-Path "C:\Program Files\MKVToolNix\mkvmerge.exe") { $success = $true; break }
-            Write-Warning "Attempt $i failed, retrying in 10s..."
-            Start-Sleep -Seconds 10
+          function Install-WithRetry([string]$Package, [scriptblock]$Verify) {
+            for ($i = 1; $i -le 3; $i++) {
+              choco install $Package -y --no-progress
+              if (& $Verify) { return }
+              Write-Warning "$Package attempt $i failed, retrying in 10s..."
+              Start-Sleep -Seconds 10
+            }
+            throw "Failed to install $Package after 3 attempts"
           }
-          if (-not $success) { throw "Failed to install mkvtoolnix after 3 attempts" }
+
+          Install-WithRetry 'mkvtoolnix' { Test-Path "C:\Program Files\MKVToolNix\mkvmerge.exe" }
           echo "C:\Program Files\MKVToolNix" >> $env:GITHUB_PATH
 
-      - name: Install ffmpeg (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          $success = $false
-          for ($i = 1; $i -le 3; $i++) {
-            choco install ffmpeg -y --no-progress
-            # choco's ffmpeg shim lands in C:\ProgramData\chocolatey\bin which is already on PATH.
-            $ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
-            if ($ffmpeg) { $success = $true; break }
-            Write-Warning "Attempt $i failed, retrying in 10s..."
-            Start-Sleep -Seconds 10
-          }
-          if (-not $success) { throw "Failed to install ffmpeg after 3 attempts" }
+          Install-WithRetry 'ffmpeg' { Get-Command ffmpeg -ErrorAction SilentlyContinue }
+          $major = (ffmpeg -version | Select-Object -First 1) -replace '.*ffmpeg version (\d+)\..*','$1'
+          if ([int]$major -lt 8) { throw "ffmpeg $major is too old; need >= 8.x for MP4 title round-trip" }
+          ffmpeg -version | Select-Object -First 1
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Run Tests
         run: dotnet test --configuration Release
@@ -119,7 +120,7 @@ jobs:
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Publish .NET app
         run: dotnet publish Muxarr.Web/Muxarr.Web.csproj -c Release -o Muxarr.Web/publish
@@ -146,6 +147,7 @@ jobs:
         with:
           context: Muxarr.Web
           platforms: ${{ matrix.platform }}
+          build-args: FFMPEG_VERSION=${{ env.FFMPEG_VERSION }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.platform }}
