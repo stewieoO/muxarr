@@ -418,10 +418,6 @@ public class MediaConverterService(
         conversion.State = ConversionState.Completed;
     }
 
-    /// <summary>
-    /// Runs mkvmerge to produce the remuxed temp file. Caller handles
-    /// validation and the final swap via <see cref="FinalizeTemporaryOutputAsync"/>.
-    /// </summary>
     private async Task RunMkvMergeRemuxAsync(MediaConversion conversion, List<TrackOutput> trackOutputs, string tmp,
         AppDbContext context, CancellationToken token)
     {
@@ -457,11 +453,6 @@ public class MediaConverterService(
         await context.SaveChangesAsync(token);
     }
 
-    /// <summary>
-    /// Runs ffmpeg stream-copy to write the output file for any non-Matroska
-    /// source. Handles metadata edits, track filtering, and reordering in a
-    /// single pass while keeping the container and every codec byte-identical.
-    /// </summary>
     private async Task RunFFmpegRemuxAsync(MediaConversion conversion, List<TrackOutput> trackOutputs,
         string tmp, AppDbContext context, CancellationToken token)
     {
@@ -473,8 +464,6 @@ public class MediaConverterService(
         var result = await FFmpeg.RemuxFile(mediaFile.Path, tmp, trackOutputs, mediaFile.DurationMs,
             (line, progress, isStderr) =>
             {
-                // Only stderr is human-readable; the -progress pipe:1 stream
-                // on stdout would flood the log.
                 if (isStderr)
                 {
                     conversion.Log(line, logger);

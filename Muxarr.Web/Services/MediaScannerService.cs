@@ -124,7 +124,7 @@ public class MediaScannerService(
                 return;
             }
 
-            if (!SupportedExtensions.Contains(Path.GetExtension(file)))
+            if (!SupportedExtensions.Contains(Path.GetExtension(file)) || PathFilter.ShouldIgnore(file))
             {
                 continue;
             }
@@ -146,6 +146,12 @@ public class MediaScannerService(
     public async Task ScanFile(string filePath, bool forceRescan, Profile profile,
         string? webhookTitle = null, string? webhookOriginalLanguage = null)
     {
+        if (PathFilter.ShouldIgnore(filePath))
+        {
+            logger.LogDebug("Ignoring artifact file '{FilePath}'", filePath);
+            return;
+        }
+
         using var scope = serviceScopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await ScanFileCore(filePath, forceRescan, profile, context, webhookTitle, webhookOriginalLanguage);

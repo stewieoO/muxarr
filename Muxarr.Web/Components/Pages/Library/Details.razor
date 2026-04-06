@@ -257,6 +257,10 @@
                 conversion.TracksAfter = e.Conversion.MediaFile.Tracks.ToSnapshots();
                 conversion.SizeDifference = e.Conversion.SizeDifference;
                 ToastService.ShowInfo($"Finished {e.Conversion.MediaFile.GetName()}!");
+
+                await LoadFile();
+                StateHasChanged();
+                return;
             }
 
             conversion.Progress = e.Conversion.Progress;

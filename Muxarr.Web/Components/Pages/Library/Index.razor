@@ -64,6 +64,16 @@
         </div>
         <div class="col-auto d-flex justify-content-center gap-2 align-items-center">
             <ResetFilters Parent="this"></ResetFilters>
+            @if (_profileSummaries.Count > 1)
+            {
+                <select class="form-select form-select-sm" style="width: auto;" @bind="ProfileFilter">
+                    <option value="">All Profiles</option>
+                    @foreach (var p in _profileSummaries)
+                    {
+                        <option value="@p.Id">@p.Name (@p.Count)</option>
+                    }
+                </select>
+            }
             <select class="form-select form-select-sm" style="width: auto;" @bind="FileFilter">
                 <option value="">All Files</option>
                 <option value="tracks">Needs Track Removal</option>
@@ -314,10 +324,30 @@
         }
     }
 
+    [Filter] private string _profileFilter = "";
+
+    private string ProfileFilter
+    {
+        get => _profileFilter;
+        set
+        {
+            _profileFilter = value;
+            _ = UpdateList();
+        }
+    }
+
     private bool _showAdvanced;
     private bool _isQueueing;
     private bool _disposed;
     private LibraryStatsConfig? _filterOptions;
+    private List<ProfileSummary> _profileSummaries = [];
+
+    private class ProfileSummary
+    {
+        public int Id { get; init; }
+        public string Name { get; init; } = "";
+        public int Count { get; init; }
+    }
 
     private bool HasAdvancedFilters =>
         !string.IsNullOrEmpty(_videoCodecFilter) || !string.IsNullOrEmpty(_audioCodecFilter) ||
@@ -337,7 +367,8 @@
         ("audioLanguage", nameof(_audioLanguageFilter)),
         ("subtitleLanguage", nameof(_subtitleLanguageFilter)),
         ("container", nameof(_containerFilter)),
-        ("bitDepth", nameof(_bitDepthFilter))
+        ("bitDepth", nameof(_bitDepthFilter)),
+        ("profile", nameof(_profileFilter))
     ];
 
     protected override async Task OnInitializedAsync()
@@ -355,6 +386,15 @@
 
         await using var context = await ContextFactory.CreateDbContextAsync();
         _filterOptions = context.Configs.Get<LibraryStatsConfig>();
+        await LoadProfileSummaries(context);
+    }
+
+    private async Task LoadProfileSummaries(AppDbContext context)
+    {
+        _profileSummaries = await context.Profiles
+            .Select(p => new ProfileSummary { Id = p.Id, Name = p.Name, Count = p.MediaFiles.Count() })
+            .OrderBy(p => p.Name)
+            .ToListAsync();
     }
 
     private bool ApplyQueryParams()
@@ -424,6 +464,11 @@
         if (!string.IsNullOrEmpty(_containerFilter))
         {
             query = query.Where(f => EF.Functions.Collate(f.ContainerType!, "NOCASE") == _containerFilter);
+        }
+
+        if (!string.IsNullOrEmpty(_profileFilter) && int.TryParse(_profileFilter, out var profileId))
+        {
+            query = query.Where(f => f.ProfileId == profileId);
         }
 
         if (!string.IsNullOrEmpty(_bitDepthFilter) && int.TryParse(_bitDepthFilter.Replace("-bit", ""), out var depth))
@@ -567,6 +612,8 @@
             if (!isScanning)
             {
                 ToastService.ShowInfo("Finished scanning!");
+                await using var context = await ContextFactory.CreateDbContextAsync();
+                await LoadProfileSummaries(context);
             }
 
             await UpdateList();
