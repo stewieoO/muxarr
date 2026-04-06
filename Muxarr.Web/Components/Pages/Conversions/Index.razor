@@ -41,12 +41,8 @@
     @if (_currentConversion != null || _queuedCount > 0)
     {
         <div class="card border-primary mb-4">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-arrow-repeat me-2"></i>Active Conversions</span>
-                @if (_queuedCount > 0)
-                {
-                    <span class="badge bg-light text-primary">@_queuedCount queued</span>
-                }
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-arrow-repeat me-2"></i>Active Conversions
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">

@@ -37,8 +37,17 @@
         @if (SelectedItems.Count > 0)
         {
             <div class="col-auto">
-                <button @onclick="QueueSelected" class="btn btn-success btn-sm" type="button">
-                    <i class="bi bi-plus-circle me-1"></i>Queue @SelectedItems.Count to conversion
+                <button @onclick="QueueSelected" class="btn btn-success btn-sm" type="button"
+                        disabled="@_isQueueing">
+                    @if (_isQueueing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-plus-circle me-1"></i>
+                    }
+                    Queue @SelectedItems.Count to conversion
                 </button>
             </div>
         }
@@ -543,6 +552,7 @@
     private async Task QueueAllFiltered()
     {
         _isQueueing = true;
+        StateHasChanged();
         try
         {
             await using var context = await ContextFactory.CreateDbContextAsync();
@@ -559,8 +569,17 @@
 
     private async Task QueueSelected()
     {
-        await QueueFiles(SelectedItems);
-        SelectedItems.Clear();
+        _isQueueing = true;
+        StateHasChanged();
+        try
+        {
+            await QueueFiles(SelectedItems);
+            SelectedItems.Clear();
+        }
+        finally
+        {
+            _isQueueing = false;
+        }
     }
 
     private async Task QueueFiles(IEnumerable<MediaFile> files)
