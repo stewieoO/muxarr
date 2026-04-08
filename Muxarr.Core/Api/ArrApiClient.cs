@@ -23,13 +23,13 @@ public class ArrApiClient
     private const string TestUrl = "/api/v3/diskspace";
     private const string NotificationUrl = "/api/v3/notification";
 
-    public async Task<bool> CanConnect(ArrConfig config)
+    public async Task<bool> CanConnect(IApiCredentials config)
     {
         var result = await Get<List<DiskSpaceResponse>>(config, TestUrl);
         return result != null;
     }
 
-    public async Task<List<SeriesResponse>> SyncSeries(ArrConfig config)
+    public async Task<List<SeriesResponse>> SyncSeries(IApiCredentials config)
     {
         var data = await Get<List<SeriesResponse>>(config, SeriesUrl);
         if (data == null)
@@ -82,13 +82,13 @@ public class ArrApiClient
         return epResult;
     }
 
-    public async Task<List<MovieResponse>> SyncMovies(ArrConfig config)
+    public async Task<List<MovieResponse>> SyncMovies(IApiCredentials config)
     {
         var data = await Get<List<MovieResponse>>(config, MovieUrl);
         return data ?? [];
     }
 
-    public async Task<ArrNotification?> FindMuxarrNotification(ArrConfig config)
+    public async Task<ArrNotification?> FindMuxarrNotification(IApiCredentials config)
     {
         var notifications = await Get<List<ArrNotification>>(config, NotificationUrl);
         return notifications?.FirstOrDefault(n =>
@@ -96,14 +96,14 @@ public class ArrApiClient
             n.Name.Equals("Muxarr", StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<bool> CreateWebhookNotification(ArrConfig config, string webhookUrl)
+    public async Task<bool> CreateWebhookNotification(IApiCredentials config, string webhookUrl)
     {
         var payload = ArrNotification.CreateMuxarr(webhookUrl);
         var result = await Post(config, NotificationUrl, payload);
         return result;
     }
 
-    public async Task<bool> UpdateWebhookNotification(ArrConfig config, ArrNotification existing, string webhookUrl)
+    public async Task<bool> UpdateWebhookNotification(IApiCredentials config, ArrNotification existing, string webhookUrl)
     {
         // Delete and recreate rather than PUT, because our model only maps a subset
         // of fields — PUTting back would lose unmapped fields (tags, extra event flags, etc.)
@@ -116,12 +116,12 @@ public class ArrApiClient
         return await CreateWebhookNotification(config, webhookUrl);
     }
 
-    public async Task<bool> DeleteWebhookNotification(ArrConfig config, int notificationId)
+    public async Task<bool> DeleteWebhookNotification(IApiCredentials config, int notificationId)
     {
         return await Delete(config, $"{NotificationUrl}/{notificationId}");
     }
 
-    private async Task<T?> Get<T>(ArrConfig config, string url) where T : class
+    private async Task<T?> Get<T>(IApiCredentials config, string url) where T : class
     {
         if (string.IsNullOrEmpty(config.Url) || string.IsNullOrEmpty(config.ApiKey))
         {
@@ -164,17 +164,17 @@ public class ArrApiClient
         }
     }
 
-    private async Task<bool> Post<T>(ArrConfig config, string url, T body)
+    private async Task<bool> Post<T>(IApiCredentials config, string url, T body)
     {
         return await SendJson(config, HttpMethod.Post, url, body);
     }
 
-    private async Task<bool> Delete(ArrConfig config, string url)
+    private async Task<bool> Delete(IApiCredentials config, string url)
     {
         return await SendJson<object?>(config, HttpMethod.Delete, url, null);
     }
 
-    private async Task<bool> SendJson<T>(ArrConfig config, HttpMethod method, string url, T? body)
+    private async Task<bool> SendJson<T>(IApiCredentials config, HttpMethod method, string url, T? body)
     {
         if (string.IsNullOrEmpty(config.Url) || string.IsNullOrEmpty(config.ApiKey))
         {

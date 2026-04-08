@@ -1,8 +1,9 @@
 @using Muxarr.Core.Config
+@using Muxarr.Data.Entities
 <p class="text-muted">Connect Muxarr to Sonarr and Radarr for original language detection and automatic file
     processing.</p>
 
-<EditForm Model="ArrConfigs" OnValidSubmit="HandleSubmit">
+<EditForm Model="Services" OnValidSubmit="HandleSubmit">
     <DataAnnotationsValidator/>
 
     <div class="border rounded p-4 mb-4">
@@ -16,18 +17,24 @@
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-lg-6">
-            <ArrServiceCard Name="Sonarr" Config="@ArrConfigs.Sonarr"
-                            ConfigKey="@ArrConfig.SonarrKey"
-                            GetWebhookUrl="@(() => WebhookUrl)"
-                            AutoSave="@SaveSettingsSilent"/>
-        </div>
-        <div class="col-lg-6">
-            <ArrServiceCard Name="Radarr" Config="@ArrConfigs.Radarr"
-                            ConfigKey="@ArrConfig.RadarrKey"
-                            GetWebhookUrl="@(() => WebhookUrl)"
-                            AutoSave="@SaveSettingsSilent"/>
-        </div>
+        @foreach (var svc in Services)
+        {
+            <div class="col-lg-6">
+                <ArrServiceCard Service="svc"
+                                GetWebhookUrl="@(() => WebhookUrl)"
+                                AutoSave="@SaveSettingsSilent"
+                                OnDelete="@(() => RemoveService(svc))"/>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex gap-2 mb-4">
+        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => AddService(ExternalServiceType.Sonarr)">
+            <i class="bi bi-plus-circle me-1"></i>Add Sonarr
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => AddService(ExternalServiceType.Radarr)">
+            <i class="bi bi-plus-circle me-1"></i>Add Radarr
+        </button>
     </div>
 
     <div class="border rounded p-4 mb-4">
@@ -57,7 +64,7 @@
     [Inject] public required IDbContextFactory<AppDbContext> ContextFactory { get; set; }
     [Inject] public required IToastService ToastService { get; set; }
 
-    private ArrConfigs ArrConfigs { get; } = new();
+    private List<ExternalService> Services { get; set; } = [];
     private WebhookConfig WebhookConfig { get; set; } = new();
 
     private string WebhookUrl
@@ -83,9 +90,39 @@
     {
         await using var context = await ContextFactory.CreateDbContextAsync();
 
-        ArrConfigs.Sonarr = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.SonarrKey);
-        ArrConfigs.Radarr = context.Configs.GetOrDefault<ArrConfig>(ArrConfig.RadarrKey);
+        Services = await context.ExternalServices.OrderBy(c => c.Id).ToListAsync();
         WebhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
+    }
+
+    private void AddService(ExternalServiceType type)
+    {
+        var name = type == ExternalServiceType.Sonarr ? "Sonarr" : "Radarr";
+        var existing = Services.Count(c => c.Type == type);
+        if (existing > 0)
+        {
+            name += $" {existing + 1}";
+        }
+
+        Services.Add(new ExternalService { Name = name, Type = type });
+    }
+
+    private async Task RemoveService(ExternalService svc)
+    {
+        Services.Remove(svc);
+
+        if (svc.Id != 0)
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync();
+            var existing = await context.ExternalServices.FindAsync(svc.Id);
+            if (existing != null)
+            {
+                context.ExternalServices.Remove(existing);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        ToastService.ShowSuccess($"{svc.Name} removed.");
+        StateHasChanged();
     }
 
     private Task HandleSubmit()
@@ -104,14 +141,36 @@
         {
             await using var context = await ContextFactory.CreateDbContextAsync();
 
-            ArrConfigs.Sonarr.Url = ArrServiceCard.SanitizeUrl(ArrConfigs.Sonarr.Url);
-            ArrConfigs.Radarr.Url = ArrServiceCard.SanitizeUrl(ArrConfigs.Radarr.Url);
             WebhookConfig.MuxarrUrl = WebhookConfig.MuxarrUrl.Trim().TrimEnd('/');
-
-            context.Configs.Set(ArrConfigs.Sonarr, ArrConfig.SonarrKey);
-            context.Configs.Set(ArrConfigs.Radarr, ArrConfig.RadarrKey);
             context.Configs.Set(WebhookConfig);
+
+            foreach (var svc in Services)
+            {
+                svc.Url = svc.Url.SanitizeUrl();
+
+                if (svc.Id == 0)
+                {
+                    context.ExternalServices.Add(svc);
+                }
+                else
+                {
+                    var existing = await context.ExternalServices.FindAsync(svc.Id);
+                    if (existing != null)
+                    {
+                        existing.Name = svc.Name;
+                        existing.Url = svc.Url;
+                        existing.ApiKey = svc.ApiKey;
+                    }
+                }
+            }
+
             await context.SaveChangesAsync();
+
+            // Refresh IDs for newly added services
+            if (Services.Any(c => c.Id == 0))
+            {
+                Services = await context.ExternalServices.OrderBy(c => c.Id).ToListAsync();
+            }
 
             if (showToast)
             {
