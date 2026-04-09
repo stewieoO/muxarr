@@ -1,20 +1,25 @@
-using System.Net.Http.Json;
 using Muxarr.Core.Config;
 
 namespace Muxarr.Web.Services.Notifications.Providers;
 
-public class PushoverProvider : INotificationProvider
+public class PushoverProvider : NotificationProviderBase
 {
-    public NotificationProvider Type => NotificationProvider.Pushover;
+    public override string Icon => "bi-phone";
 
-    public async Task SendAsync(HttpClient client, NotificationConfig config, string title, string body)
+    [Field("App Token")]
+    public string AppToken { get; set; } = "";
+
+    [Field("User Key")]
+    public string UserKey { get; set; } = "";
+
+    protected override async Task SendCoreAsync(HttpClient client, NotificationPayload payload)
     {
-        await client.PostAsJsonAsync("https://api.pushover.net/1/messages.json", new
+        await PostJsonAsync(client, "https://api.pushover.net/1/messages.json", new
         {
-            token = config.AppToken,
-            user = config.UserKey,
-            title,
-            message = body
+            token = AppToken,
+            user = UserKey,
+            title = payload.Title,
+            message = payload.Body
         });
     }
 }

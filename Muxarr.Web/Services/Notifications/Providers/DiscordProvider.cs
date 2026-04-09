@@ -1,19 +1,28 @@
-using System.Net.Http.Json;
 using Muxarr.Core.Config;
 
 namespace Muxarr.Web.Services.Notifications.Providers;
 
-public class DiscordProvider : INotificationProvider
+public class DiscordProvider : NotificationProviderBase
 {
-    public NotificationProvider Type => NotificationProvider.Discord;
+    public override string Icon => "bi-discord";
 
-    public async Task SendAsync(HttpClient client, NotificationConfig config, string title, string body)
+    [Field("Webhook URL", Type = "url", Placeholder = "https://discord.com/api/webhooks/...")]
+    public string Url { get; set; } = "";
+
+    protected override async Task SendCoreAsync(HttpClient client, NotificationPayload payload)
     {
-        await client.PostAsJsonAsync(config.Url, new
+        var color = payload.EventType switch
+        {
+            NotificationEventType.Completed => 3066993,  // green
+            NotificationEventType.Failed => 15158332,    // red
+            _ => 3447003                                 // blue
+        };
+
+        await PostJsonAsync(client, Url, new
         {
             embeds = new[]
             {
-                new { title, description = body, color = 3447003 }
+                new { title = payload.Title, description = payload.Body, color }
             }
         });
     }

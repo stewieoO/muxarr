@@ -9,61 +9,26 @@
     <div class="mb-3">
         <label class="form-label">Provider</label>
         <select class="form-select" @bind="Config.Provider">
-            @foreach (var provider in Enum.GetValues<NotificationProvider>())
+            @foreach (var provider in NotificationService.Providers)
             {
-                <option value="@provider">@provider</option>
+                <option value="@provider.Type">@provider.Type</option>
             }
         </select>
     </div>
 
-    @switch (Config.Provider)
+    @foreach (var field in CurrentProvider?.Fields ?? [])
     {
-        case NotificationProvider.Pushover:
-            <div class="mb-3">
-                <label class="form-label">App Token</label>
-                <input type="text" class="form-control" @bind="Config.AppToken"/>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">User Key</label>
-                <input type="text" class="form-control" @bind="Config.UserKey"/>
-            </div>
-            break;
-
-        case NotificationProvider.Discord:
-            <div class="mb-3">
-                <label class="form-label">Webhook URL</label>
-                <input type="url" class="form-control" @bind="Config.Url" placeholder="https://discord.com/api/webhooks/..."/>
-            </div>
-            break;
-
-        case NotificationProvider.Gotify:
-            <div class="mb-3">
-                <label class="form-label">Server URL</label>
-                <input type="url" class="form-control" @bind="Config.Url" placeholder="https://gotify.example.com"/>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">App Token</label>
-                <input type="text" class="form-control" @bind="Config.Token"/>
-            </div>
-            break;
-
-        case NotificationProvider.Ntfy:
-            <div class="mb-3">
-                <label class="form-label">Server URL</label>
-                <input type="url" class="form-control" @bind="Config.Url" placeholder="https://ntfy.sh"/>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Topic</label>
-                <input type="text" class="form-control" @bind="Config.Topic" placeholder="muxarr"/>
-            </div>
-            break;
-
-        case NotificationProvider.Webhook:
-            <div class="mb-3">
-                <label class="form-label">URL</label>
-                <input type="url" class="form-control" @bind="Config.Url" placeholder="https://..."/>
-            </div>
-            break;
+        <div class="mb-3">
+            <label class="form-label">@field.Label</label>
+            <input type="@field.InputType" class="form-control"
+                   value="@Config.Get(field.Name)"
+                   @onchange="@(e => Config.Settings[field.Name] = e.Value?.ToString() ?? "")"
+                   placeholder="@field.Placeholder"/>
+            @if (!string.IsNullOrEmpty(field.HelpText))
+            {
+                <small class="form-text text-muted">@field.HelpText</small>
+            }
+        </div>
     }
 
     <div class="mb-3">
@@ -121,6 +86,17 @@
     private bool _testing;
     private string? _testResult;
     private bool _testSuccess;
+
+    private INotificationProvider? CurrentProvider =>
+        NotificationService.Providers.FirstOrDefault(p => p.Type == Config.Provider);
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrEmpty(Config.Provider))
+        {
+            Config.Provider = NotificationService.Providers.FirstOrDefault()?.Type ?? "";
+        }
+    }
 
     private async Task Test()
     {

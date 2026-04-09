@@ -4,25 +4,16 @@ public class NotificationConfig
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
     public string Name { get; set; } = "";
-    public NotificationProvider Provider { get; set; }
+    public string Provider { get; set; } = "";
     public bool Enabled { get; set; } = true;
 
     public bool OnStarted { get; set; }
     public bool OnCompleted { get; set; } = true;
     public bool OnFailed { get; set; } = true;
 
-    // Pushover
-    public string AppToken { get; set; } = "";
-    public string UserKey { get; set; } = "";
+    public Dictionary<string, string> Settings { get; set; } = new();
 
-    // Discord / Gotify / Webhook
-    public string Url { get; set; } = "";
-
-    // Gotify
-    public string Token { get; set; } = "";
-
-    // ntfy
-    public string Topic { get; set; } = "";
+    public string Get(string key) => Settings.GetValueOrDefault(key, "");
 
     public bool HasTrigger(NotificationEventType type) => type switch
     {
@@ -33,17 +24,9 @@ public class NotificationConfig
     };
 }
 
-public enum NotificationProvider
-{
-    Pushover,
-    Discord,
-    Gotify,
-    Ntfy,
-    Webhook
-}
-
 public enum NotificationEventType
 {
+    Test,
     Started,
     Completed,
     Failed

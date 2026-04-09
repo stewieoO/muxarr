@@ -1,18 +1,33 @@
+using System.Net.Http.Headers;
 using System.Text;
 using Muxarr.Core.Config;
 
 namespace Muxarr.Web.Services.Notifications.Providers;
 
-public class NtfyProvider : INotificationProvider
+public class NtfyProvider : NotificationProviderBase
 {
-    public NotificationProvider Type => NotificationProvider.Ntfy;
+    public override string Icon => "bi-megaphone";
 
-    public async Task SendAsync(HttpClient client, NotificationConfig config, string title, string body)
+    [Field("Server URL", Type = "url", Placeholder = "https://ntfy.sh")]
+    public string Url { get; set; } = "";
+
+    [Field("Topic", Placeholder = "muxarr")]
+    public string Topic { get; set; } = "";
+
+    [Field("Access Token", HelpText = "Required for self-hosted ntfy instances with authentication.")]
+    public string Token { get; set; } = "";
+
+    protected override async Task SendCoreAsync(HttpClient client, NotificationPayload payload)
     {
-        var url = $"{config.Url.TrimEnd('/')}/{config.Topic}";
-        using var request = new HttpRequestMessage(HttpMethod.Post, url);
-        request.Headers.Add("Title", title);
-        request.Content = new StringContent(body, Encoding.UTF8, "text/plain");
-        await client.SendAsync(request);
+        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(Url, Topic));
+        request.Headers.Add("Title", payload.Title);
+        request.Content = new StringContent(payload.Body, Encoding.UTF8, "text/plain");
+
+        if (!string.IsNullOrEmpty(Token))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+        }
+
+        await SendRequestAsync(client, request);
     }
 }

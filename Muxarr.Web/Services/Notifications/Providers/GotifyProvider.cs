@@ -3,16 +3,19 @@ using Muxarr.Core.Config;
 
 namespace Muxarr.Web.Services.Notifications.Providers;
 
-public class GotifyProvider : INotificationProvider
+public class GotifyProvider : NotificationProviderBase
 {
-    public NotificationProvider Type => NotificationProvider.Gotify;
+    [Field("Server URL", Type = "url", Placeholder = "https://gotify.example.com")]
+    public string Url { get; set; } = "";
 
-    public async Task SendAsync(HttpClient client, NotificationConfig config, string title, string body)
+    [Field("App Token")]
+    public string Token { get; set; } = "";
+
+    protected override async Task SendCoreAsync(HttpClient client, NotificationPayload payload)
     {
-        var url = $"{config.Url.TrimEnd('/')}/message";
-        using var request = new HttpRequestMessage(HttpMethod.Post, url);
-        request.Headers.Add("X-Gotify-Key", config.Token);
-        request.Content = JsonContent.Create(new { title, message = body, priority = 5 });
-        await client.SendAsync(request);
+        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(Url, "message"));
+        request.Headers.Add("X-Gotify-Key", Token);
+        request.Content = JsonContent.Create(new { title = payload.Title, message = payload.Body, priority = 5 });
+        await SendRequestAsync(client, request);
     }
 }

@@ -4,7 +4,7 @@ using Muxarr.Core.Extensions;
 using Muxarr.Data;
 using Muxarr.Data.Entities;
 using Muxarr.Data.Extensions;
-using Muxarr.Web.Services.Notifications.Providers;
+using Muxarr.Web.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Muxarr.Web.Services.Notifications;
@@ -13,11 +13,7 @@ public static class NotificationRegistration
 {
     public static IServiceCollection AddNotifications(this IServiceCollection services)
     {
-        services.AddSingleton<INotificationProvider, PushoverProvider>();
-        services.AddSingleton<INotificationProvider, DiscordProvider>();
-        services.AddSingleton<INotificationProvider, GotifyProvider>();
-        services.AddSingleton<INotificationProvider, NtfyProvider>();
-        services.AddSingleton<INotificationProvider, WebhookProvider>();
+        services.AddImplementations<INotificationProvider>();
         services.AddSingleton<NotificationService>();
         return services;
     }
@@ -27,9 +23,11 @@ public class NotificationService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly HttpClient _httpClient;
-    private readonly Dictionary<NotificationProvider, INotificationProvider> _providers;
+    private readonly Dictionary<string, INotificationProvider> _providers;
     private readonly ILogger<NotificationService> _logger;
     private readonly ConcurrentDictionary<int, ConversionState> _lastNotifiedState = new();
+
+    public IReadOnlyCollection<INotificationProvider> Providers => _providers.Values;
 
     public NotificationService(
         IServiceScopeFactory scopeFactory,
@@ -83,8 +81,8 @@ public class NotificationService
         try
         {
             using var scope = _scopeFactory.CreateScope();
-            await using var context = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>()
-                .CreateDbContext();
+            await using var context = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>()
+                .CreateDbContextAsync();
             configs = context.Configs.GetOrDefault<List<NotificationConfig>>();
         }
         catch (Exception ex)
@@ -93,7 +91,7 @@ public class NotificationService
             return;
         }
 
-        var (title, body) = BuildMessage(eventType, conversion);
+        var payload = BuildPayload(eventType, conversion);
 
         foreach (var config in configs.Where(c => c.Enabled && c.HasTrigger(eventType)))
         {
@@ -104,7 +102,7 @@ public class NotificationService
 
             try
             {
-                await provider.SendAsync(_httpClient, config, title, body);
+                await provider.SendAsync(_httpClient, config, payload);
             }
             catch (Exception ex)
             {
@@ -122,7 +120,13 @@ public class NotificationService
 
         try
         {
-            await provider.SendAsync(_httpClient, config, "Muxarr Test", "If you see this, notifications are working!");
+            var payload = new NotificationPayload
+            {
+                Title = "Muxarr Test",
+                Body = "If you see this, notifications are working!",
+                EventType = NotificationEventType.Test
+            };
+            await provider.SendAsync(_httpClient, config, payload);
             return null;
         }
         catch (Exception ex)
@@ -131,9 +135,9 @@ public class NotificationService
         }
     }
 
-    private static (string Title, string Body) BuildMessage(NotificationEventType type, MediaConversion conversion)
+    private static NotificationPayload BuildPayload(NotificationEventType type, MediaConversion conversion)
     {
-        return type switch
+        var (title, body) = type switch
         {
             NotificationEventType.Started =>
                 ("Conversion Started", $"{conversion.Name} - {conversion.SizeBefore.DisplayFileSize()}"),
@@ -143,6 +147,18 @@ public class NotificationService
             NotificationEventType.Failed =>
                 ("Conversion Failed", $"{conversion.Name} - {GetLastError(conversion)}"),
             _ => ("Muxarr", conversion.Name)
+        };
+
+        return new NotificationPayload
+        {
+            Title = title,
+            Body = body,
+            EventType = type,
+            FileName = conversion.Name,
+            SizeBefore = conversion.SizeBefore,
+            SizeAfter = type == NotificationEventType.Completed ? conversion.SizeAfter : null,
+            SizeSaved = type == NotificationEventType.Completed ? conversion.SizeDifference : null,
+            Error = type == NotificationEventType.Failed ? GetLastError(conversion) : null
         };
     }
 
@@ -154,6 +170,18 @@ public class NotificationService
         }
 
         var lines = conversion.Log.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-        return lines.Length > 0 ? lines[^1].TrimStart('[').Substring(lines[^1].IndexOf(']') + 1).Trim() : "Unknown error";
+        if (lines.Length == 0)
+        {
+            return "Unknown error";
+        }
+
+        var lastLine = lines[^1];
+        var bracketEnd = lastLine.IndexOf(']');
+        if (bracketEnd >= 0 && bracketEnd + 1 < lastLine.Length)
+        {
+            return lastLine[(bracketEnd + 1)..].Trim();
+        }
+
+        return lastLine.Trim();
     }
 }

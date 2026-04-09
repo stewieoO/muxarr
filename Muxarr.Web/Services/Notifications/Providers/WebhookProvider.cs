@@ -1,14 +1,27 @@
-using System.Net.Http.Json;
 using Muxarr.Core.Config;
 
 namespace Muxarr.Web.Services.Notifications.Providers;
 
-public class WebhookProvider : INotificationProvider
+public class WebhookProvider : NotificationProviderBase
 {
-    public NotificationProvider Type => NotificationProvider.Webhook;
+    public override string Icon => "bi-globe";
 
-    public async Task SendAsync(HttpClient client, NotificationConfig config, string title, string body)
+    [Field("URL", Type = "url", Placeholder = "https://...")]
+    public string Url { get; set; } = "";
+
+    protected override async Task SendCoreAsync(HttpClient client, NotificationPayload payload)
     {
-        await client.PostAsJsonAsync(config.Url, new { title, body });
+        await PostJsonAsync(client, Url, new
+        {
+            @event = payload.EventType?.ToString(),
+            title = payload.Title,
+            body = payload.Body,
+            fileName = payload.FileName,
+            sizeBefore = payload.SizeBefore,
+            sizeAfter = payload.SizeAfter,
+            sizeSaved = payload.SizeSaved,
+            error = payload.Error,
+            timestamp = payload.Timestamp
+        });
     }
 }
