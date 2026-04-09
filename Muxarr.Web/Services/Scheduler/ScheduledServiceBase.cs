@@ -11,11 +11,11 @@ public abstract class ScheduledServiceBase(ILogger logger) : MutexServiceBase(lo
     private bool _isRunning;
     private DateTime _lastRun = DateTime.MinValue; // Always ensure a run on startup.
 
-    public abstract TimeSpan Interval { get; }
+    public abstract TimeSpan? Interval { get; }
 
     public bool ShouldRun()
     {
-        return DateTime.UtcNow - _lastRun >= Interval;
+        return Interval.HasValue && DateTime.UtcNow - _lastRun >= Interval.Value;
     }
 
     public bool IsRunning()

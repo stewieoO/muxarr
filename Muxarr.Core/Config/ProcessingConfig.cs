@@ -1,16 +1,22 @@
 namespace Muxarr.Core.Config;
 
-public class PostProcessingConfig
+public class ProcessingConfig
 {
-    public bool Enabled { get; set; }
-    public string Command { get; set; } = string.Empty;
+    /// <summary>
+    /// Interval in hours between automatic library scans.
+    /// Set to 0 to disable scheduled scanning (manual scans still work).
+    /// </summary>
+    public int ScanIntervalHours { get; set; }
+
+    public bool PostProcessingEnabled { get; set; }
+    public string PostProcessingCommand { get; set; } = string.Empty;
 
     public string ResolveCommand(string filePath)
     {
         var directory = Path.GetDirectoryName(filePath) ?? string.Empty;
         var filename = Path.GetFileNameWithoutExtension(filePath);
 
-        return Command
+        return PostProcessingCommand
             .Replace("{{file}}", filePath)
             .Replace("{file}", filePath)
             .Replace("{{filename}}", filename)

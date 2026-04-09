@@ -21,7 +21,7 @@ public class MediaConverterService(
     private CancellationTokenSource? _currentConversionCts;
     private bool _firstRun = true;
 
-    public override TimeSpan Interval => TimeSpan.FromMinutes(60);
+    public override TimeSpan? Interval => TimeSpan.FromMinutes(60);
 
     public bool IsPaused { get; private set; }
     public event EventHandler<ConverterProgressEvent>? ConverterStateChanged;
@@ -678,8 +678,8 @@ public class MediaConverterService(
 
     private async Task RunPostProcessing(MediaConversion conversion, AppDbContext context)
     {
-        var config = context.Configs.GetOrDefault<PostProcessingConfig>();
-        if (!config.Enabled || string.IsNullOrWhiteSpace(config.Command))
+        var config = context.Configs.GetOrDefault<ProcessingConfig>();
+        if (!config.PostProcessingEnabled || string.IsNullOrWhiteSpace(config.PostProcessingCommand))
         {
             return;
         }

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
+using Muxarr.Core.Config;
 using Muxarr.Core.Extensions;
 using Muxarr.Core.FFmpeg;
 using Muxarr.Core.Utilities;
@@ -27,7 +28,19 @@ public class MediaScannerService(
     private readonly ConcurrentQueue<ScanDirectory> _directoryQueue = new();
     private DateTime _lastScanUpdate = DateTime.MinValue;
     private CancellationTokenSource? _scanCts;
-    public override TimeSpan Interval => TimeSpan.FromDays(1);
+
+    public override TimeSpan? Interval
+    {
+        get
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var config = context.Configs.GetOrDefault<ProcessingConfig>();
+            return config.ScanIntervalHours > 0
+                ? TimeSpan.FromHours(config.ScanIntervalHours)
+                : null;
+        }
+    }
 
     public bool IsScanning
     {

@@ -15,7 +15,7 @@ public class ArrSyncService(
 {
     private DateTime _lastSync;
 
-    public override TimeSpan Interval => TimeSpan.FromDays(1);
+    public override TimeSpan? Interval => TimeSpan.FromDays(1);
 
     protected override async Task ExecuteAsync(CancellationToken token)
     {

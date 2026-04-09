@@ -3,6 +3,21 @@
 
 <EditForm Model="WebhookConfig" OnValidSubmit="HandleSubmit">
     <div class="border rounded p-4 mb-4">
+        <h5 class="mb-3"><i class="bi bi-search me-2"></i>Library Scanning</h5>
+        <p class="text-muted small mb-3">Configure how often the library is automatically scanned for changes.
+            Manual scans can always be triggered from the library page.</p>
+
+        <div class="mb-3">
+            <label for="scan-interval" class="form-label">Scan interval (hours)</label>
+            <InputNumber id="scan-interval" class="form-control" style="max-width: 200px;"
+                         @bind-Value="ProcessingConfig.ScanIntervalHours"/>
+            <small class="form-text text-muted">
+                Set to 0 to disable automatic scanning.
+            </small>
+        </div>
+    </div>
+
+    <div class="border rounded p-4 mb-4">
         <h5 class="mb-3"><i class="bi bi-arrow-repeat me-2"></i>Webhook Processing</h5>
         <p class="text-muted small mb-3">Configure how and when files are processed after they arrive via webhook.
             Webhooks must be connected in the Connections tab first.</p>
@@ -31,14 +46,14 @@
             media servers, cleaning subtitles, or other automation.</p>
 
         <div class="mb-3 form-check form-switch">
-            <InputCheckbox id="pp-enabled" class="form-check-input" @bind-Value="PostProcessingConfig.Enabled"/>
+            <InputCheckbox id="pp-enabled" class="form-check-input" @bind-Value="ProcessingConfig.PostProcessingEnabled"/>
             <label for="pp-enabled" class="form-check-label">Enable post-processing</label>
         </div>
 
         <div class="mb-3">
             <label for="pp-command" class="form-label">Command</label>
             <InputTextArea id="pp-command" class="form-control font-monospace" rows="3"
-                           @bind-Value="PostProcessingConfig.Command"/>
+                           @bind-Value="ProcessingConfig.PostProcessingCommand"/>
             <small class="form-text text-muted">The command to execute after a successful conversion.</small>
         </div>
 
@@ -68,12 +83,12 @@
             </table>
         </div>
 
-        @if (!string.IsNullOrWhiteSpace(PostProcessingConfig.Command))
+        @if (!string.IsNullOrWhiteSpace(ProcessingConfig.PostProcessingCommand))
         {
             <div class="mb-3">
                 <label class="form-label text-muted">Preview</label>
                 <div class="bg-dark text-light p-2 rounded font-monospace small">
-                    @PostProcessingConfig.ResolveCommand("/media/movies/Example Movie (2024)/Example.Movie.2024.1080p.mkv")
+                    @ProcessingConfig.ResolveCommand("/media/movies/Example Movie (2024)/Example.Movie.2024.1080p.mkv")
                 </div>
             </div>
         }
@@ -91,13 +106,13 @@
     [Inject] public required IToastService ToastService { get; set; }
 
     private WebhookConfig WebhookConfig { get; set; } = new();
-    private PostProcessingConfig PostProcessingConfig { get; set; } = new();
+    private ProcessingConfig ProcessingConfig { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
         await using var context = await ContextFactory.CreateDbContextAsync();
         WebhookConfig = context.Configs.GetOrDefault<WebhookConfig>();
-        PostProcessingConfig = context.Configs.GetOrDefault<PostProcessingConfig>();
+        ProcessingConfig = context.Configs.GetOrDefault<ProcessingConfig>();
     }
 
     private async Task HandleSubmit()
@@ -106,7 +121,7 @@
         {
             await using var context = await ContextFactory.CreateDbContextAsync();
             context.Configs.Set(WebhookConfig);
-            context.Configs.Set(PostProcessingConfig);
+            context.Configs.Set(ProcessingConfig);
             await context.SaveChangesAsync();
             ToastService.ShowSuccess("Processing settings saved.");
         }
