@@ -62,7 +62,8 @@ await builder.RunWithLoggingAsync(async b =>
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await context.Initialize();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppDbContext>>();
+        await context.Initialize(logger);
     }
 
     // HTTP pipeline
