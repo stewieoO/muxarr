@@ -184,7 +184,7 @@ public static class MediaFileExtensions
                                    || TrackNameFlags.ContainsVisualImpaired(trackName),
                 IsCommentary = disposition.Comment == 1 || TrackNameFlags.ContainsCommentary(trackName),
                 IsOriginal = disposition.Original == 1,
-                Duration = stream.Duration ?? ParseTagDuration(stream.Tags) ?? probe.Format?.Duration
+                Duration = stream.Duration ?? ParseTagDuration(stream.Tags) ?? stream.Duration ?? probe.Format?.Duration
             };
 
             static double? ParseTagDuration(Dictionary<string, string>? tags)
