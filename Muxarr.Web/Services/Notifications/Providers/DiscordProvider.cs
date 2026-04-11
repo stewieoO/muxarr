@@ -1,15 +1,19 @@
 using Muxarr.Core.Config;
+using Muxarr.Web.Components.Shared;
 
 namespace Muxarr.Web.Services.Notifications.Providers;
 
-public class DiscordProvider : NotificationProviderBase
+public class DiscordSettings
+{
+    [Field("Webhook URL", Type = FieldType.Url, Placeholder = "https://discord.com/api/webhooks/...")]
+    public string Url { get; set; } = "";
+}
+
+public class DiscordProvider : NotificationProvider<DiscordSettings>
 {
     public override string Icon => "bi-discord";
 
-    [Field("Webhook URL", Type = "url", Placeholder = "https://discord.com/api/webhooks/...")]
-    public string Url { get; set; } = "";
-
-    protected override async Task SendCoreAsync(HttpClient client, NotificationPayload payload)
+    protected override Task SendCoreAsync(HttpClient client, DiscordSettings s, NotificationPayload payload)
     {
         var color = payload.EventType switch
         {
@@ -18,7 +22,7 @@ public class DiscordProvider : NotificationProviderBase
             _ => 3447003                                 // blue
         };
 
-        await PostJsonAsync(client, Url, new
+        return PostJsonAsync(client, s.Url, new
         {
             embeds = new[]
             {

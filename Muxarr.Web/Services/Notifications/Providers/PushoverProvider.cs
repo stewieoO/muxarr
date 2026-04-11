@@ -1,25 +1,26 @@
-using Muxarr.Core.Config;
+using Muxarr.Web.Components.Shared;
 
 namespace Muxarr.Web.Services.Notifications.Providers;
 
-public class PushoverProvider : NotificationProviderBase
+public class PushoverSettings
+{
+    [Field("App Token", Type = FieldType.Password)]
+    public string AppToken { get; set; } = "";
+
+    [Field("User Key", Type = FieldType.Password)]
+    public string UserKey { get; set; } = "";
+}
+
+public class PushoverProvider : NotificationProvider<PushoverSettings>
 {
     public override string Icon => "bi-phone";
 
-    [Field("App Token")]
-    public string AppToken { get; set; } = "";
-
-    [Field("User Key")]
-    public string UserKey { get; set; } = "";
-
-    protected override async Task SendCoreAsync(HttpClient client, NotificationPayload payload)
-    {
-        await PostJsonAsync(client, "https://api.pushover.net/1/messages.json", new
+    protected override Task SendCoreAsync(HttpClient client, PushoverSettings s, NotificationPayload payload)
+        => PostJsonAsync(client, "https://api.pushover.net/1/messages.json", new
         {
-            token = AppToken,
-            user = UserKey,
+            token = s.AppToken,
+            user = s.UserKey,
             title = payload.Title,
             message = payload.Body
         });
-    }
 }

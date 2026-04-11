@@ -1,4 +1,5 @@
 @using Muxarr.Core.Config
+@using Muxarr.Core.Utilities
 @using Muxarr.Web.Components.Shared.Modals
 @using Muxarr.Web.Services.Notifications
 
@@ -29,23 +30,19 @@ else
                             }
                         </div>
                         <div class="d-flex gap-1">
-                            @if (config.OnStarted)
+                            @foreach (var trigger in TriggerBadges)
                             {
-                                <span class="badge text-bg-light border">Started</span>
-                            }
-                            @if (config.OnCompleted)
-                            {
-                                <span class="badge text-bg-light border">Completed</span>
-                            }
-                            @if (config.OnFailed)
-                            {
-                                <span class="badge text-bg-light border">Failed</span>
+                                if (config.HasTrigger(trigger))
+                                {
+                                    <span class="badge text-bg-light border">@trigger</span>
+                                }
                             }
                         </div>
                     </div>
-                    <div class="d-flex gap-1">
-                        <div class="form-check form-switch me-2">
-                            <input type="checkbox" class="form-check-input" checked="@config.Enabled"
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="form-check form-switch ps-0 mb-0" style="min-height: auto;">
+                            <input type="checkbox" class="form-check-input float-none m-0" role="switch"
+                                   checked="@config.Enabled"
                                    @onchange="() => ToggleEnabled(config)"/>
                         </div>
                         <button class="btn btn-sm btn-outline-primary" @onclick="() => EditNotification(config)">
@@ -152,17 +149,11 @@ else
         }
     }
 
-    private static NotificationConfig CloneConfig(NotificationConfig src) => new()
-    {
-        Id = src.Id,
-        Name = src.Name,
-        Provider = src.Provider,
-        Enabled = src.Enabled,
-        OnStarted = src.OnStarted,
-        OnCompleted = src.OnCompleted,
-        OnFailed = src.OnFailed,
-        Settings = new Dictionary<string, string>(src.Settings)
-    };
+    private static readonly NotificationEventType[] TriggerBadges =
+        [NotificationEventType.Started, NotificationEventType.Completed, NotificationEventType.Failed];
+
+    private static NotificationConfig CloneConfig(NotificationConfig src)
+        => JsonHelper.Deserialize<NotificationConfig>(JsonHelper.Serialize(src))!;
 
     private string GetProviderIcon(string provider) =>
         NotificationService.Providers.FirstOrDefault(p => p.Type == provider)?.Icon ?? "bi-bell";

@@ -1,20 +1,23 @@
 using System.Net.Http.Json;
-using Muxarr.Core.Config;
+using Muxarr.Web.Components.Shared;
 
 namespace Muxarr.Web.Services.Notifications.Providers;
 
-public class GotifyProvider : NotificationProviderBase
+public class GotifySettings
 {
-    [Field("Server URL", Type = "url", Placeholder = "https://gotify.example.com")]
+    [Field("Server URL", Type = FieldType.Url, Placeholder = "https://gotify.example.com")]
     public string Url { get; set; } = "";
 
-    [Field("App Token")]
+    [Field("App Token", Type = FieldType.Password)]
     public string Token { get; set; } = "";
+}
 
-    protected override async Task SendCoreAsync(HttpClient client, NotificationPayload payload)
+public class GotifyProvider : NotificationProvider<GotifySettings>
+{
+    protected override async Task SendCoreAsync(HttpClient client, GotifySettings s, NotificationPayload payload)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(Url, "message"));
-        request.Headers.Add("X-Gotify-Key", Token);
+        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(s.Url, "message"));
+        request.Headers.Add("X-Gotify-Key", s.Token);
         request.Content = JsonContent.Create(new { title = payload.Title, message = payload.Body, priority = 5 });
         await SendRequestAsync(client, request);
     }

@@ -7,27 +7,19 @@ public class NotificationConfig
     public string Provider { get; set; } = "";
     public bool Enabled { get; set; } = true;
 
-    public bool OnStarted { get; set; }
-    public bool OnCompleted { get; set; } = true;
-    public bool OnFailed { get; set; } = true;
+    public NotificationEventType Triggers { get; set; } = NotificationEventType.Completed | NotificationEventType.Failed;
 
     public Dictionary<string, string> Settings { get; set; } = new();
 
-    public string Get(string key) => Settings.GetValueOrDefault(key, "");
-
-    public bool HasTrigger(NotificationEventType type) => type switch
-    {
-        NotificationEventType.Started => OnStarted,
-        NotificationEventType.Completed => OnCompleted,
-        NotificationEventType.Failed => OnFailed,
-        _ => false
-    };
+    public bool HasTrigger(NotificationEventType type) => (Triggers & type) != 0;
 }
 
+[Flags]
 public enum NotificationEventType
 {
-    Test,
-    Started,
-    Completed,
-    Failed
+    None = 0,
+    Started = 1 << 0,
+    Completed = 1 << 1,
+    Failed = 1 << 2,
+    Test = 1 << 3
 }

@@ -13,26 +13,34 @@ public static class NotificationRegistration
 {
     public static IServiceCollection AddNotifications(this IServiceCollection services)
     {
-        services.AddImplementations<INotificationProvider>();
+        services.AddImplementations<NotificationProvider>();
         services.AddSingleton<NotificationService>();
         return services;
     }
+}
+
+public record NotificationTestResult(bool Success, string Message)
+{
+    public static NotificationTestResult Ok(string message = "Test notification sent!") => new(true, message);
+    public static NotificationTestResult Fail(string message) => new(false, message);
 }
 
 public class NotificationService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly HttpClient _httpClient;
-    private readonly Dictionary<string, INotificationProvider> _providers;
+    private readonly Dictionary<string, NotificationProvider> _providers;
     private readonly ILogger<NotificationService> _logger;
-    private readonly ConcurrentDictionary<int, ConversionState> _lastNotifiedState = new();
+    // Tracks conversions that already fired a "Started" notification, so converter retries
+    // don't spam. Terminal states clear the entry. Used as a concurrent set.
+    private readonly ConcurrentDictionary<int, byte> _startedFired = new();
 
-    public IReadOnlyCollection<INotificationProvider> Providers => _providers.Values;
+    public IReadOnlyCollection<NotificationProvider> Providers => _providers.Values;
 
     public NotificationService(
         IServiceScopeFactory scopeFactory,
         IHttpClientFactory httpClientFactory,
-        IEnumerable<INotificationProvider> providers,
+        IEnumerable<NotificationProvider> providers,
         MediaConverterService converter,
         ILogger<NotificationService> logger)
     {
@@ -55,21 +63,21 @@ public class NotificationService
             _ => (NotificationEventType?)null
         };
 
-        if (eventType == null)
+        if (eventType is null)
         {
             return;
         }
 
-        if (_lastNotifiedState.TryGetValue(conversion.Id, out var prev) && prev == conversion.State)
+        if (eventType == NotificationEventType.Started)
         {
-            return;
+            if (!_startedFired.TryAdd(conversion.Id, 0))
+            {
+                return;
+            }
         }
-
-        _lastNotifiedState[conversion.Id] = conversion.State;
-
-        if (conversion.State is ConversionState.Completed or ConversionState.Failed)
+        else
         {
-            _lastNotifiedState.TryRemove(conversion.Id, out _);
+            _startedFired.TryRemove(conversion.Id, out _);
         }
 
         _ = SendAsync(eventType.Value, conversion);
@@ -111,11 +119,11 @@ public class NotificationService
         }
     }
 
-    public async Task<string?> SendTestAsync(NotificationConfig config)
+    public async Task<NotificationTestResult> SendTestAsync(NotificationConfig config)
     {
         if (!_providers.TryGetValue(config.Provider, out var provider))
         {
-            return $"Unknown provider: {config.Provider}";
+            return NotificationTestResult.Fail($"Unknown provider: {config.Provider}");
         }
 
         try
@@ -127,11 +135,11 @@ public class NotificationService
                 EventType = NotificationEventType.Test
             };
             await provider.SendAsync(_httpClient, config, payload);
-            return null;
+            return NotificationTestResult.Ok();
         }
         catch (Exception ex)
         {
-            return ex.Message;
+            return NotificationTestResult.Fail(ex.Message);
         }
     }
 

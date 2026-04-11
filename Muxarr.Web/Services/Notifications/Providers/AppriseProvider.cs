@@ -1,18 +1,22 @@
 using Muxarr.Core.Config;
+using Muxarr.Web.Components.Shared;
 
 namespace Muxarr.Web.Services.Notifications.Providers;
 
-public class AppriseProvider : NotificationProviderBase
+public class AppriseSettings
 {
-    public override string Icon => "bi-collection";
-
-    [Field("Apprise API URL", Type = "url", Placeholder = "http://apprise:8000")]
+    [Field("Apprise API URL", Type = FieldType.Url, Placeholder = "http://apprise:8000")]
     public string Url { get; set; } = "";
 
     [Field("Tag", HelpText = "Only notify URLs tagged with this value in your Apprise config. Leave empty to notify all.")]
     public string Tag { get; set; } = "";
+}
 
-    protected override async Task SendCoreAsync(HttpClient client, NotificationPayload payload)
+public class AppriseProvider : NotificationProvider<AppriseSettings>
+{
+    public override string Icon => "bi-collection";
+
+    protected override Task SendCoreAsync(HttpClient client, AppriseSettings s, NotificationPayload payload)
     {
         var body = new Dictionary<string, string>
         {
@@ -26,11 +30,11 @@ public class AppriseProvider : NotificationProviderBase
             }
         };
 
-        if (!string.IsNullOrEmpty(Tag))
+        if (!string.IsNullOrEmpty(s.Tag))
         {
-            body["tag"] = Tag;
+            body["tag"] = s.Tag;
         }
 
-        await PostJsonAsync(client, BuildUrl(Url, "notify"), body);
+        return PostJsonAsync(client, BuildUrl(s.Url, "notify"), body);
     }
 }

@@ -16,14 +16,23 @@
         </select>
     </div>
 
-    @foreach (var field in CurrentProvider?.Fields ?? [])
+    @foreach (var (name, field) in CurrentProvider?.Fields ?? new Dictionary<string, FieldAttribute>())
     {
         <div class="mb-3">
             <label class="form-label">@field.Label</label>
-            <input type="@field.InputType" class="form-control"
-                   value="@Config.Get(field.Name)"
-                   @onchange="@(e => Config.Settings[field.Name] = e.Value?.ToString() ?? "")"
-                   placeholder="@field.Placeholder"/>
+            @if (field.Type == FieldType.Password)
+            {
+                <PasswordInput @bind-Value:get="Config.Settings.GetValueOrDefault(name, string.Empty)"
+                               @bind-Value:set="@(v => Config.Settings[name] = v)"
+                               Placeholder="@field.Placeholder"/>
+            }
+            else
+            {
+                <input type="@(field.Type == FieldType.Url ? "url" : "text")" class="form-control"
+                       @bind:get="Config.Settings.GetValueOrDefault(name, string.Empty)"
+                       @bind:set="@((string v) => Config.Settings[name] = v)"
+                       placeholder="@field.Placeholder"/>
+            }
             @if (!string.IsNullOrEmpty(field.HelpText))
             {
                 <small class="form-text text-muted">@field.HelpText</small>
@@ -34,18 +43,16 @@
     <div class="mb-3">
         <label class="form-label">Triggers</label>
         <div class="d-flex gap-3">
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="notif-started" @bind="Config.OnStarted"/>
-                <label class="form-check-label" for="notif-started">Started</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="notif-completed" @bind="Config.OnCompleted"/>
-                <label class="form-check-label" for="notif-completed">Completed</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="notif-failed" @bind="Config.OnFailed"/>
-                <label class="form-check-label" for="notif-failed">Failed</label>
-            </div>
+            @foreach (var trigger in TriggerOptions)
+            {
+                var id = $"notif-{trigger}";
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="@id"
+                           checked="@Config.Triggers.HasFlag(trigger)"
+                           @onchange="@((ChangeEventArgs e) => ToggleTrigger(trigger, (bool)e.Value!))"/>
+                    <label class="form-check-label" for="@id">@trigger</label>
+                </div>
+            }
         </div>
     </div>
 
@@ -87,8 +94,23 @@
     private string? _testResult;
     private bool _testSuccess;
 
-    private INotificationProvider? CurrentProvider =>
+    private static readonly NotificationEventType[] TriggerOptions =
+        [NotificationEventType.Started, NotificationEventType.Completed, NotificationEventType.Failed];
+
+    private NotificationProvider? CurrentProvider =>
         NotificationService.Providers.FirstOrDefault(p => p.Type == Config.Provider);
+
+    private void ToggleTrigger(NotificationEventType trigger, bool on)
+    {
+        if (on)
+        {
+            Config.Triggers |= trigger;
+        }
+        else
+        {
+            Config.Triggers &= ~trigger;
+        }
+    }
 
     protected override void OnParametersSet()
     {
@@ -104,9 +126,9 @@
         _testResult = null;
         StateHasChanged();
 
-        var error = await NotificationService.SendTestAsync(Config);
-        _testSuccess = error == null;
-        _testResult = error ?? "Test notification sent!";
+        var result = await NotificationService.SendTestAsync(Config);
+        _testSuccess = result.Success;
+        _testResult = result.Message;
         _testing = false;
     }
 
