@@ -19,33 +19,51 @@
                 @bind:set="OnProviderChanged">
             @foreach (var provider in NotificationService.Providers)
             {
-                <option value="@provider.Type">@provider.Type</option>
+                <option value="@provider.Type">@provider.DisplayName</option>
             }
         </select>
     </div>
 
     @foreach (var (name, field) in CurrentProvider?.Fields ?? new Dictionary<string, FieldAttribute>())
     {
-        <div class="mb-3">
-            <label class="form-label">@field.Label</label>
-            @if (field.Type == FieldType.Password)
-            {
-                <PasswordInput @bind-Value:get="Config.Settings.GetValueOrDefault(name, string.Empty)"
-                               @bind-Value:set="@(v => Config.Settings[name] = v)"
-                               Placeholder="@field.Placeholder"/>
-            }
-            else
-            {
-                <input type="@(field.Type == FieldType.Url ? "url" : "text")" class="form-control"
-                       @bind:get="Config.Settings.GetValueOrDefault(name, string.Empty)"
-                       @bind:set="@((string v) => Config.Settings[name] = v)"
-                       placeholder="@field.Placeholder"/>
-            }
-            @if (!string.IsNullOrEmpty(field.HelpText))
-            {
-                <small class="form-text text-muted">@field.HelpText</small>
-            }
-        </div>
+        @if (field.Type == FieldType.Checkbox)
+        {
+            var id = $"notif-field-{name}";
+            <div class="mb-3 form-check form-switch">
+                <input type="checkbox" class="form-check-input" id="@id"
+                       checked="@IsChecked(name, field)"
+                       @onchange="@((ChangeEventArgs e) => Config.Settings[name] = ((bool)e.Value!).ToString().ToLowerInvariant())"/>
+                <label class="form-check-label" for="@id">@field.Label</label>
+                @if (!string.IsNullOrEmpty(field.HelpText))
+                {
+                    <br/>
+                    <small class="form-text text-muted">@field.HelpText</small>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="mb-3">
+                <label class="form-label">@field.Label</label>
+                @if (field.Type == FieldType.Password)
+                {
+                    <PasswordInput @bind-Value:get="Config.Settings.GetValueOrDefault(name, string.Empty)"
+                                   @bind-Value:set="@(v => Config.Settings[name] = v)"
+                                   Placeholder="@field.Placeholder"/>
+                }
+                else
+                {
+                    <input type="@(field.Type == FieldType.Url ? "url" : "text")" class="form-control"
+                           @bind:get="Config.Settings.GetValueOrDefault(name, string.Empty)"
+                           @bind:set="@((string v) => Config.Settings[name] = v)"
+                           placeholder="@field.Placeholder"/>
+                }
+                @if (!string.IsNullOrEmpty(field.HelpText))
+                {
+                    <small class="form-text text-muted">@field.HelpText</small>
+                }
+            </div>
+        }
     }
 
     <div class="mb-3">
@@ -109,6 +127,32 @@
     private NotificationProvider? CurrentProvider =>
         NotificationService.Providers.FirstOrDefault(p => p.Type == Config.Provider);
 
+    private bool IsChecked(string name, FieldAttribute field)
+    {
+        if (Config.Settings.TryGetValue(name, out var value) && !string.IsNullOrEmpty(value))
+        {
+            return bool.TryParse(value, out var parsed) && parsed;
+        }
+
+        return bool.TryParse(field.Default, out var def) && def;
+    }
+
+    private void ApplyDefaults()
+    {
+        if (CurrentProvider is null)
+        {
+            return;
+        }
+
+        foreach (var (name, field) in CurrentProvider.Fields)
+        {
+            if (!string.IsNullOrEmpty(field.Default) && !Config.Settings.ContainsKey(name))
+            {
+                Config.Settings[name] = field.Default;
+            }
+        }
+    }
+
     private void ToggleTrigger(NotificationEventType trigger, bool on)
     {
         if (on)
@@ -132,6 +176,8 @@
         {
             Config.Name = Config.Provider;
         }
+
+        ApplyDefaults();
     }
 
     private void OnProviderChanged(string? provider)
@@ -147,6 +193,8 @@
         {
             Config.Name = newProvider;
         }
+
+        ApplyDefaults();
     }
 
     private async Task Test()

@@ -12,7 +12,12 @@ namespace Muxarr.Web.Services.Notifications;
 /// </summary>
 public abstract class NotificationProvider
 {
+    /// <summary>Stable identifier persisted in <see cref="NotificationConfig.Provider"/>. Derived from the class name.</summary>
     public string Type => GetType().Name.Replace("Provider", "");
+
+    /// <summary>Human-friendly label shown in the UI. Override when the display name should differ from the storage key.</summary>
+    public virtual string DisplayName => Type;
+
     public virtual string Icon => "bi-bell";
     public abstract IReadOnlyDictionary<string, FieldAttribute> Fields { get; }
     public abstract Task SendAsync(HttpClient client, NotificationConfig config, NotificationPayload payload);
@@ -65,13 +70,14 @@ public abstract class NotificationProvider<TSettings> : NotificationProvider
 }
 
 /// <summary>
-/// Reflects a settings type once, caches a compiled setter delegate per <see cref="FieldAttribute"/>
+/// Reflects a settings type once, caches a setter delegate per <see cref="FieldAttribute"/>
 /// property, and produces a fresh strongly-typed instance from a <c>Dictionary&lt;string,string&gt;</c>
-/// on demand. One binder lives per closed generic of <see cref="NotificationProvider{TSettings}"/>.
+/// on demand. Supports <c>string</c> and <c>bool</c> properties. One binder lives per closed
+/// generic of <see cref="NotificationProvider{TSettings}"/>.
 /// </summary>
 internal sealed class NotificationSettingsBinder<TSettings> where TSettings : class, new()
 {
-    private readonly (string Key, Action<TSettings, string> Set)[] _setters;
+    private readonly (string Key, string Default, Action<TSettings, string> Set)[] _setters;
 
     public IReadOnlyDictionary<string, FieldAttribute> Fields { get; }
 
@@ -82,30 +88,46 @@ internal sealed class NotificationSettingsBinder<TSettings> where TSettings : cl
             .Where(p => p.GetCustomAttribute<FieldAttribute>() != null)
             .ToArray();
 
-        foreach (var prop in props)
+        Fields = props.ToDictionary(p => p.Name, p => p.GetCustomAttribute<FieldAttribute>()!);
+        _setters = props.Select(BuildSetter).ToArray();
+    }
+
+    private static (string Key, string Default, Action<TSettings, string> Set) BuildSetter(PropertyInfo prop)
+    {
+        if (prop.SetMethod is null)
         {
-            if (prop.PropertyType != typeof(string) || prop.SetMethod is null)
-            {
-                throw new InvalidOperationException(
-                    $"[Field] requires a writable string property: {typeof(TSettings).Name}.{prop.Name}");
-            }
+            throw new InvalidOperationException(
+                $"[Field] requires a writable property: {typeof(TSettings).Name}.{prop.Name}");
         }
 
-        Fields = props.ToDictionary(p => p.Name, p => p.GetCustomAttribute<FieldAttribute>()!);
-        _setters = props
-            .Select(p => (
-                Key: p.Name,
-                Set: (Action<TSettings, string>)Delegate.CreateDelegate(typeof(Action<TSettings, string>), p.SetMethod!)
-            ))
-            .ToArray();
+        var attr = prop.GetCustomAttribute<FieldAttribute>()!;
+
+        if (prop.PropertyType == typeof(string))
+        {
+            var setter = (Action<TSettings, string>)Delegate.CreateDelegate(
+                typeof(Action<TSettings, string>), prop.SetMethod);
+            return (prop.Name, attr.Default, setter);
+        }
+
+        if (prop.PropertyType == typeof(bool))
+        {
+            var boolSetter = (Action<TSettings, bool>)Delegate.CreateDelegate(
+                typeof(Action<TSettings, bool>), prop.SetMethod);
+            return (prop.Name, attr.Default, (instance, raw) =>
+                boolSetter(instance, bool.TryParse(raw, out var b) && b));
+        }
+
+        throw new InvalidOperationException(
+            $"[Field] only supports string or bool properties: {typeof(TSettings).Name}.{prop.Name} is {prop.PropertyType.Name}");
     }
 
     public TSettings Bind(IReadOnlyDictionary<string, string> values)
     {
         var instance = new TSettings();
-        foreach (var (key, set) in _setters)
+        foreach (var (key, def, set) in _setters)
         {
-            set(instance, values.GetValueOrDefault(key, ""));
+            var raw = values.TryGetValue(key, out var v) && !string.IsNullOrEmpty(v) ? v : def;
+            set(instance, raw);
         }
 
         return instance;
@@ -118,6 +140,7 @@ public class NotificationPayload
     public required string Body { get; init; }
     public NotificationEventType? EventType { get; init; }
     public string? FileName { get; init; }
+    public string? FilePath { get; init; }
     public long? SizeBefore { get; init; }
     public long? SizeAfter { get; init; }
     public long? SizeSaved { get; init; }

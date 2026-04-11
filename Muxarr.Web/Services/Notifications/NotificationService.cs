@@ -104,8 +104,38 @@ public sealed class NotificationService
             return;
         }
 
-        var payload = BuildPayload(eventType, conversion);
+        var filePath = await ResolveFilePathAsync(conversion);
+        var payload = BuildPayload(eventType, conversion, filePath);
         await Task.WhenAll(matched.Select(config => DispatchAsync(config, payload, eventType, conversion.Id)));
+    }
+
+    private async Task<string?> ResolveFilePathAsync(MediaConversion conversion)
+    {
+        if (conversion.MediaFile is { Path.Length: > 0 })
+        {
+            return conversion.MediaFile.Path;
+        }
+
+        if (conversion.MediaFileId is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            await using var context = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>()
+                .CreateDbContextAsync();
+            return await context.MediaFiles
+                .Where(f => f.Id == conversion.MediaFileId)
+                .Select(f => f.Path)
+                .FirstOrDefaultAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to resolve file path for conversion {ConversionId}", conversion.Id);
+            return null;
+        }
     }
 
     private async Task DispatchAsync(NotificationConfig config, NotificationPayload payload,
@@ -196,7 +226,7 @@ public sealed class NotificationService
         }
     }
 
-    private static NotificationPayload BuildPayload(NotificationEventType type, MediaConversion conversion)
+    private static NotificationPayload BuildPayload(NotificationEventType type, MediaConversion conversion, string? filePath)
     {
         var lastError = type == NotificationEventType.Failed ? GetLastError(conversion) : null;
 
@@ -217,6 +247,7 @@ public sealed class NotificationService
             Body = body,
             EventType = type,
             FileName = conversion.Name,
+            FilePath = filePath,
             SizeBefore = conversion.SizeBefore,
             SizeAfter = type == NotificationEventType.Completed ? conversion.SizeAfter : null,
             SizeSaved = type == NotificationEventType.Completed ? conversion.SizeDifference : null,
