@@ -3,12 +3,20 @@
 <div class="modal-body">
     <div class="mb-3">
         <label class="form-label">Name</label>
-        <input type="text" class="form-control" @bind="Config.Name" placeholder="My Notification"/>
+        <input type="text"
+               class="form-control @(string.IsNullOrWhiteSpace(Config.Name) ? "is-invalid" : "")"
+               @bind="Config.Name" @bind:event="oninput" placeholder="My Notification"/>
+        @if (string.IsNullOrWhiteSpace(Config.Name))
+        {
+            <div class="invalid-feedback d-block">Name is required.</div>
+        }
     </div>
 
     <div class="mb-3">
         <label class="form-label">Provider</label>
-        <select class="form-select" @bind="Config.Provider">
+        <select class="form-select"
+                @bind:get="Config.Provider"
+                @bind:set="OnProviderChanged">
             @foreach (var provider in NotificationService.Providers)
             {
                 <option value="@provider.Type">@provider.Type</option>
@@ -70,7 +78,8 @@
         </button>
         <div class="d-flex gap-2">
             <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
-            <button class="btn btn-primary" @onclick="Save">
+            <button class="btn btn-primary" @onclick="Save"
+                    disabled="@string.IsNullOrWhiteSpace(Config.Name)">
                 <i class="bi bi-check-lg me-1"></i>Save
             </button>
         </div>
@@ -117,6 +126,26 @@
         if (string.IsNullOrEmpty(Config.Provider))
         {
             Config.Provider = NotificationService.Providers.FirstOrDefault()?.Type ?? "";
+        }
+
+        if (string.IsNullOrWhiteSpace(Config.Name))
+        {
+            Config.Name = Config.Provider;
+        }
+    }
+
+    private void OnProviderChanged(string? provider)
+    {
+        var newProvider = provider ?? "";
+        var nameIsDefault = string.IsNullOrWhiteSpace(Config.Name)
+            || NotificationService.Providers.Any(p => p.Type == Config.Name);
+
+        Config.Provider = newProvider;
+        Config.Settings.Clear();
+
+        if (nameIsDefault)
+        {
+            Config.Name = newProvider;
         }
     }
 

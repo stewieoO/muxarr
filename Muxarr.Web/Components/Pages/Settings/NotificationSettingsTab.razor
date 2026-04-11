@@ -133,6 +133,15 @@ else
     {
         config.Enabled = !config.Enabled;
         await SaveConfigs();
+
+        if (config.Enabled)
+        {
+            ToastService.ShowSuccess($"Notification '{config.Name}' enabled.");
+        }
+        else
+        {
+            ToastService.ShowWarning($"Notification '{config.Name}' disabled.");
+        }
     }
 
     private async Task SaveConfigs()
