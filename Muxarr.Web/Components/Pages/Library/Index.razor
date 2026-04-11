@@ -388,7 +388,7 @@
 
         if (ApplyQueryParams())
         {
-            await UpdateList();
+            await UpdateList(false);
         }
 
         await using var context = await ContextFactory.CreateDbContextAsync();
@@ -628,7 +628,7 @@
                 await LoadProfileSummaries(context);
             }
 
-            await UpdateList();
+            await UpdateList(false);
             StateHasChanged();
         });
     }
